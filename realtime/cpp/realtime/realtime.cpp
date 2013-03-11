@@ -879,17 +879,17 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	void iGraphDrawBars(SWindow* tsWnd)
 	{
 		bool	llBar1;
-		int		lnY, lnStep;
+		int		lnY, lnStep, lnCount;
 
 
 		// Draw the graph bars (the background)
 		llBar1	= true;
-		lnStep	= min(tsWnd->bmi.bmiHeader.biHeight / 8, 32);
-		for (lnY = lnStep / 2; lnY < tsWnd->bmi.bmiHeader.biHeight; lnY += lnStep, llBar1 = !llBar1)
+		lnStep	= max((tsWnd->bmi.bmiHeader.biHeight / 8) - 1, 8);
+		for (lnY = 3, lnCount = 0; lnCount < 8 && lnY < tsWnd->bmi.bmiHeader.biHeight; lnY += lnStep, llBar1 = !llBar1, lnCount++)
 		{
 			// Only draw bar1 colors for now
-			if (llBar1)
-				iOverlayRectangle(tsWnd, tsWnd->graph.marginLeft, lnY, tsWnd->bmi.bmiHeader.biWidth - tsWnd->graph.marginRight, lnY + lnStep + 1, tsWnd->graph.bar1Rgb, tsWnd->graph.bar2Rgb);
+			if (llBar1)		iOverlayRectangle(tsWnd, tsWnd->graph.marginLeft, lnY, tsWnd->bmi.bmiHeader.biWidth - tsWnd->graph.marginRight, lnY + lnStep + 1, tsWnd->graph.bar1Rgb, makeDarker(tsWnd->graph.bar1Rgb));
+			else			iOverlayRectangle(tsWnd, tsWnd->graph.marginLeft, lnY, tsWnd->bmi.bmiHeader.biWidth - tsWnd->graph.marginRight, lnY + lnStep + 1, tsWnd->graph.bar2Rgb, makeDarker(tsWnd->graph.bar2Rgb));
 		}
 	}
 
@@ -973,7 +973,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 
 		// Draw the graduation bars
-		iOverlayRectangle(tsWnd, tsWnd->graph.marginLeft, 0, tsWnd->graph.marginLeft + 10, tsWnd->bmi.bmiHeader.biHeight, makePastel(tsWnd->graph.bar1Rgb), makePastel(tsWnd->graph.textRgb));
+		iOverlayRectangle(tsWnd, tsWnd->graph.marginLeft, 0, tsWnd->graph.marginLeft + 10, tsWnd->bmi.bmiHeader.biHeight, makePastel(tsWnd->graph.bar1Rgb), tsWnd->graph.bar1Rgb);
 
 		// Setup our HDC for writing properly
 		SetBkMode(tsWnd->hdc2, TRANSPARENT);
@@ -1023,7 +1023,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	void iGraphPopulateDataPoints(SWindow* tsWnd)
 	{
 		int				lnI, lnX, lnY, lnPoint, lnStart, lnEnd;
-		float			lfPercent, lfPercentHigh, lfPercentLow, lfValue, lfHigh, lfLow;
+		float			lfPercent, lfPercentHigh, lfPercentLow, lfValue, lfHigh, lfLow, lfAlp;
 		SDataPoint*		pointNext;
 		SDataPoint*		point;
 
@@ -1035,7 +1035,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		// Iterate through each point
 		point = tsWnd->graph.dataPoints;
 		for (	lnI = 0, lnX = tsWnd->bmi.bmiHeader.biWidth - 1;
-				point && lnX >= 0 && point;
+				point && lnX >= tsWnd->graph.marginLeft && point;
 				lnI++, lnX--)
 		{
 			if (tsWnd->graph.sampleAverageCount > 1)
@@ -1068,6 +1068,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			}
 
 			// Draw the range first (so it's behind the data point)
+			// When we get close to the left margin, begin alpha-blending the images out of existence
+			lfAlp = min(max(1.0f - (((float)tsWnd->graph.marginLeft + 20.0f - (float)lnX) / 20.0f), 0.00f), 1.0f);
 			if (tsWnd->graph.rangeVisible != 0)
 			{
 				// Draw the range for this point
@@ -1075,11 +1077,19 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 				lfPercentLow	= (lfLow  - tsWnd->graph.rangeLower) / (tsWnd->graph.rangeUpper - tsWnd->graph.rangeLower);
 				lnStart			= tsWnd->bmi.bmiHeader.biHeight - (int)(lfPercentHigh * (float)tsWnd->bmi.bmiHeader.biHeight);
 				lnEnd			= tsWnd->bmi.bmiHeader.biHeight - (int)(lfPercentLow  * (float)tsWnd->bmi.bmiHeader.biHeight);
-				iDrawLineVerticalAlpha(tsWnd, lnX, lnStart, lnEnd, tsWnd->graph.rangeRgb, tsWnd->graph.rangeAlpha);
+				iDrawLineVerticalAlpha(tsWnd, lnX, lnStart, lnEnd, tsWnd->graph.rangeRgb, tsWnd->graph.rangeAlpha * lfAlp);
 			}
 
 			// Draw the line at that point
-			iDrawLineVertical(tsWnd, lnX, lnY - tsWnd->graph.dataPointThickness, lnY + tsWnd->graph.dataPointThickness, tsWnd->graph.dataRgb);
+			if (lfAlp != 1.0f)
+			{
+				// The last few points we draw with decreasing degrees of alpha
+				iDrawLineVerticalAlpha(tsWnd, lnX, lnY - tsWnd->graph.dataPointThickness, lnY + tsWnd->graph.dataPointThickness, tsWnd->graph.dataRgb, lfAlp);
+
+			} else {
+				// Draw opaque
+				iDrawLineVertical(tsWnd, lnX, lnY - tsWnd->graph.dataPointThickness, lnY + tsWnd->graph.dataPointThickness, tsWnd->graph.dataRgb);
+			}
 
 			// Move to the next point
 			point = point->next;
@@ -1282,7 +1292,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					if (lnX >= 0 && lnX < tsWnd->bmi.bmiHeader.biWidth)
 					{
 						// Each pixel is either a frame or fill color
-						if (lnY == tnUlY || lnX == tnUlX || lnY == tnLrY-1 || lnX == tnLrX-1)
+						if (lnY == tnUlY || lnX <= tnUlX+1 || lnY >= tnLrY-2 || lnX >= tnLrX-2)
 						{
 							// Frame color
 							lrgb->red = lnFrameRed;

@@ -10,7 +10,7 @@
 			>
 			<DebugSettings
 				Command="C:\Program Files\Microsoft Visual FoxPro 9\vfp9.exe"
-				WorkingDirectory="\temp\realtime"
+				WorkingDirectory="\vfp\realtime"
 				CommandArguments="realtime.exe"
 				Attach="false"
 				DebuggerType="3"
