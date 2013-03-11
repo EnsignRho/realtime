@@ -1,0 +1,20 @@
+LIBRARY	"realtime"
+
+EXPORTS
+
+	realtime_subclass_form_as
+	realtime_un_subclass_form
+	realtime_show_or_hide
+	realtime_test_mode
+	
+	realtime_graph_setup
+	realtime_graph_setup2
+	realtime_graph_add_data_point
+	realtime_graph_rescale_samples
+	realtime_graph_delete_all_samples
+	realtime_graph_redraw
+
+	realtime_gauge_setup
+	realtime_gauge_setup2
+	realtime_gauge_set_needle_position
+	realtime_gauge_redraw
