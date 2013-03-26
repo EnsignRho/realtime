@@ -34,6 +34,9 @@
 
 
 
-SWindow*	root					= NULL;				// Link-list of windows this DLL is maintaining
-ATOM		gnAtom					= NULL;				// Used one time to register the class
-bool		glTestMode				= false;			// When enabled, all functions simply immediately return
+SWindow*			gsRootWind				= NULL;				// Link-list of windows this DLL is maintaining
+ATOM				gnAtom					= NULL;				// Used one time to register the class
+bool				glTestMode				= false;			// When enabled, all functions simply immediately return
+int					gnNextUniqueId			= 0x08101969;		// Begin at Rick C. Hodgin's birthday
+CRITICAL_SECTION	gcsUniqueId;								// Used for synchronous access to the unique id
+int					gnDrawSnaps				= 0;				// Draw the snaps around objects?  0=no, 1=highlighted, 2=all

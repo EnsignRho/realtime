@@ -51,7 +51,7 @@
 //////////
 // Forward declarations
 //////
-	REALTIME_API int		realtime_subclass_form_as					(HWND tnHwndParent, int tnType, int tnX, int tnY, int tnWidth, int tnHeight, int tnUlRgb, int tnUrRgb, int tnLrRgb, int tnLlRgb);
+	REALTIME_API int		realtime_subclass_form_as					(HWND tnHwndParent, int tnType, int tnX, int tnY, int tnWidth, int tnHeight, int tnUlRgb, int tnUrRgb, int tnLrRgb, int tnLlRgb, int tnCaptureUlX, int tnCaptureUlY);
 	REALTIME_API void		realtime_un_subclass_form					(int tnHandle);
 	REALTIME_API void		realtime_show_or_hide						(int tnHandle, int tnShow);
 	REALTIME_API void		realtime_test_mode							(int tnEnabled);
@@ -70,43 +70,81 @@
 	REALTIME_API void		realtime_gauge_set_needle_position			(int tnHandle, float tfRangeStart, float tfRangeEnd, float tfNeedleValue);
 	REALTIME_API void		realtime_gauge_redraw						(int tnHandle);
 
+	// For mover functions
+	REALTIME_API void		realtime_mover_setup						(int tnHandle, int tnMarginVertical, int tnMarginHorizontal);
+	REALTIME_API int		realtime_mover_create_object_with_text		(int tnHandle, int tnWidth, int tnHeight, char* tcText, int tnTextLength, int tnBackRgb, int tnForeRgb, float tfAlpha, char* tcFontName, int tnFontSize, int tnBold, int tnItaclics, int tnUnderline, int tnBorderRgb, int tnBorderThickness);
+	REALTIME_API int		realtime_mover_acquire_object_from_rect		(int tnHandle, int tnHwndParent, int tnUlX, int tnUlY, int tnLrX, int tnLrY);
+	REALTIME_API int		realtime_mover_setup_object					(int tnHandle, int tnObjectId, int tnCol, int tnRow, int tnDraggable, int tnAcceptsDrops, int tnCopiesOnDrop/*if no, moves on drop*/, int tnCallbackCode);
+	REALTIME_API int		realtime_mover_recompute					(int tnHandle);
+	REALTIME_API void		realtime_mover_redraw						(int tnHandle);
+
 
 //////////
 // Local/internal function prototype definitions
 //////
+	void					iGraphDrawBars								(SWindow* tsWnd, SBitmap* bmp);
+	void					iGraphDrawGrid								(SWindow* tsWnd, SBitmap* bmp);
+	void					iGraphOverlayGraduation						(SWindow* tsWnd, SBitmap* bmp);
+	void					iGraphPopulateDataPoints					(SWindow* tsWnd, SBitmap* bmp);
+	void					iGraphFindHighLowAvgPoints					(SWindow* tsWnd, int tnSkipTo, int tnSamples, float* tfHigh, float* tfLow, float* tfAvg);
+
+	void					iGaugeRenderBasic							(SWindow* tsWnd, SBitmap* bmp);
+	void					iGaugeOverlayGraduation						(SWindow* tsWnd, SBitmap* bmp);
+	void					iGaugeOverlayNeedle							(SWindow* tsWnd, SBitmap* bmp);
+	void					iGaugeOverlayHighlightedValue				(SWindow* tsWnd, SBitmap* bmp);
+	float					iGaugeGetSnappedNeedleValue					(SWindow* tsWnd);
+
+	SMoverObj*				iMoverAppendNewObject						(SWindow* tsWnd);
+	void					iMoverDrawObjects							(SWindow* tsWnd, SBitmap* bmp);
+	void					iMoverDrawSnaps								(SWindow* tsWnd, SBitmap* bmp, SMoverObj* moSnap);
+	void					iMoverOverlayBitmap							(SWindow* tsWnd, SBitmap* bmp, SMoverObj* mo, SMoverPos* mop, float tfAlp);
+	void					iMoverFillRect								(SWindow* tsWnd, SBitmap* bmp, SMoverObj* mo, SMoverPos* mop, float tfAlp, int tnRgb);
+	void					iMoverGetObjectExtents						(SWindow* tsWnd, int* tnMaxCol, int* tnMaxRow, int* tnMaxWidth, int* tnMaxHeight, bool tlActualOnly);
+	void					iiMoverSetPosition							(SMoverPos* mp, SMoverPos* mpRef, int snapDirection, int x, int y, int width, int height);
+	bool					iiMoverTrackMouseMovement					(SWindow* tsWnd, bool tlForce);
+	bool					iiMoverSnapPositionHasMoved					(SWindow* tsWnd, SMoverPos* snap);
+	SMoverPos*				iiMoverDetermineSnapPosition				(SWindow* tsWnd, SMoverPos* snapReal, SMoverObj** objSnappedOn);
+	bool					iiMoverIsPointInThisPosition				(SMoverPos* mp, int x, int y);
+	void					iiMoverKickOffAnimationsViaSnapPosition		(SWindow* tsWnd, SMoverPos* snap);
+	void					iiMoverDetermineSnapAdjustments				(SWindow* tsWnd, SMoverObj* obj, SMoverPos* snapCandidate, int* tnRowDelta, int* tnColDelta);
+	void					iiMoverAnimateTo							(SWindow* tsWnd, SMoverObj* obj, int tnCol, int tnRow);
+	bool					iiMoverTrackMouseLeftButtonReleased			(SWindow* tsWnd);
+	bool					iiMoverTrackMouseLeftButtonPressed			(SWindow* tsWnd);
+	bool					iiMoverTrackMouseRightButtonReleased		(SWindow* tsWnd);
+	bool					iiMoverTrackMouseRightButtonPressed			(SWindow* tsWnd);
+	void					iiMoverDeleteObjectChain					(SMoverObj** objRoot);
+
+	int						iGetNextUniqueId							(void);
 	SWindow*				iCreateNewSWindow							(void);
 	void					iDeleteSWindow								(SWindow* tsWnd);
 	SWindow*				iLocateWindow								(int tnHandle);
 	void					iAppendGraphDataPoint						(SWindow* tsWnd, float tfRangeUpper, float tfRangeLower, float tfFloatDataPoint);
 	bool					iCopyStringIfDifferent						(char** tcDst, char* tcSrc);
 	void					iUpdateFont									(SWindow* tsWnd);
-	void					iGradient4Fill								(SWindow* tsWnd);
-	void					iGradient4VerticalLine						(SWindow* tsWnd, int tnX, float tfRTop, float tfGTop, float tfBTop, float tfRBot, float tfGBot, float tfBBot);
-	void					iGraphDrawBars								(SWindow* tsWnd);
-	void					iGraphDrawGrid								(SWindow* tsWnd);
-	void					iGraphOverlayGraduation						(SWindow* tsWnd);
-	void					iGraphPopulateDataPoints					(SWindow* tsWnd);
-	void					iGraphFindHighLowAvgPoints					(SWindow* tsWnd, int tnSkipTo, int tnSamples, float* tfHigh, float* tfLow, float* tfAvg);
-	void					iApplyOverlayBmpFile						(SWindow* tsWnd, float tfX1, float tfY1, float tfX2, float tfY2, float tfTheta, unsigned char* tcOverlayBmpFile);
-	void					iOverlayRectangle							(SWindow* tsWnd, int tnUlX, int tnUlY, int tnLrX, int tnLrY, int tnFillRgb, int tnFrameRgb);
-	void					iDrawLineVertical							(SWindow* tsWnd, int tnX, int tnUY, int tnLY, int tnRgb);
-	void					iDrawLineVerticalAlpha						(SWindow* tsWnd, int tnX, int tnUY, int tnLY, int tnRgb, float tfAlp);
-	void					iDrawLineHorizontal							(SWindow* tsWnd, int tnLX, int tnRX, int tnY, int tnRgb);
-	void					iDrawLineHorizontalAlpha					(SWindow* tsWnd, int tnLX, int tnRX, int tnY, int tnRgb, float tfAlp);
-	void					iDrawLineArbitrary							(SWindow* tsWnd, float tfX1, float tfY1, float tfX2, float tfY2, int tnRgb);
-	void					iDrawLineArbitraryColorPath					(SWindow* tsWnd, float tfX1, float tfY1, float tfX2, float tfY2, int tnRgb1, int tnRgb2);
-	void					iGrayerLineArbitrary						(SWindow* tsWnd, float tfX1, float tfY1, float tfX2, float tfY2);
-	void					iGaugeRenderBasic							(SWindow* tsWnd);
-	void					iGaugeOverlayGraduation						(SWindow* tsWnd);
-	void					iGaugeOverlayNeedle							(SWindow* tsWnd);
-	void					iGaugeOverlayHighlightedValue				(SWindow* tsWnd);
-	float					iGaugeGetSnappedNeedleValue					(SWindow* tsWnd);
-	void					iAdjustRectangle							(SWindow* tsWnd, float tfXOrigin, float tfYOrigin, float tfTheta, RECT* lrc);
+	void					iGradient4FillOrBitmapOverlay				(SWindow* tsWnd, SBitmap* bmp2, SBitmap* bmp3);
+	void					iGradient4VerticalLine						(SWindow* tsWnd, SBitmap* bmp, int tnX, float tfRTop, float tfGTop, float tfBTop, float tfRBot, float tfGBot, float tfBBot);
+
+	void					iApplyOverlayBmpFile						(SWindow* tsWnd, SBitmap* bmp, float tfX1, float tfY1, float tfX2, float tfY2, float tfTheta, unsigned char* tcOverlayBmpFile);
+	void					iOverlayBitmap								(SWindow* tsWnd, SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, float tfAlpha);
+	void					iOverlayRectangle							(SWindow* tsWnd, SBitmap* bmp, int tnUlX, int tnUlY, int tnLrX, int tnLrY, int tnFillRgb, int tnFrameRgb);
+	void					iDrawLineVertical							(SWindow* tsWnd, SBitmap* bmp, int tnX, int tnUY, int tnLY, int tnRgb);
+	void					iDrawLineVerticalAlpha						(SWindow* tsWnd, SBitmap* bmp, int tnX, int tnUY, int tnLY, int tnRgb, float tfAlp);
+	void					iDrawLineHorizontal							(SWindow* tsWnd, SBitmap* bmp, int tnLX, int tnRX, int tnY, int tnRgb);
+	void					iDrawLineHorizontalAlpha					(SWindow* tsWnd, SBitmap* bmp, int tnLX, int tnRX, int tnY, int tnRgb, float tfAlp);
+	void					iDrawLineArbitrary							(SWindow* tsWnd, SBitmap* bmp, float tfX1, float tfY1, float tfX2, float tfY2, int tnRgb);
+	void					iDrawLineArbitraryColorPath					(SWindow* tsWnd, SBitmap* bmp, float tfX1, float tfY1, float tfX2, float tfY2, int tnRgb1, int tnRgb2);
+	void					iGrayerLineArbitrary						(SWindow* tsWnd, SBitmap* bmp, float tfX1, float tfY1, float tfX2, float tfY2);
+	void					iAdjustRectangle							(SWindow* tsWnd, SBitmap* bmp, float tfXOrigin, float tfYOrigin, float tfTheta, RECT* lrc);
 	bool					iIsBetween									(int tnTestValue, int tnValue1, int tnValue2);
 	void					iLtrimBuffer								(char* tcData);
 	int						iComputeActualWidth							(BITMAPINFOHEADER* tbi);
-	void					iRenderTheGraph								(SWindow* tsWnd);
-	void					iRenderTheGauge								(SWindow* tsWnd);
+
+	void					iRender										(SWindow* tsWnd);
 	DWORD WINAPI			buildGaugeWorkerThreadProc					(LPVOID lpParameter);
 	DWORD WINAPI			buildGraphWorkerThreadProc					(LPVOID lpParameter);
+	DWORD WINAPI			buildMoverWorkerThreadProc					(LPVOID lpParameter);
 	LRESULT CALLBACK		realtimeWndProc								(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	VOID CALLBACK			iiMoverTimerProc								(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
+	void					iPaintWindow								(SWindow* tsWnd);
+	void					iStoreMouseData								(SMouse* mouse, WPARAM wParam, LPARAM lParam);
+	void					iSignalEventsBasedOnMouseChanges			(SWindow* tsWnd);

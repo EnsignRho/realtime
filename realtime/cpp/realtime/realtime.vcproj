@@ -45,6 +45,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				StructMemberAlignment="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -60,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\..\..\..\$(ProjectName).dll"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile="realtime.def"
 				GenerateDebugInformation="true"
@@ -87,6 +88,8 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description="copy realtime.dll \vfp\realtime\"
+				CommandLine="copy $(OutDir)\$(ProjectName).dll \vfp\realtime\"
 			/>
 		</Configuration>
 		<Configuration
@@ -118,6 +121,7 @@
 				EnableIntrinsicFunctions="true"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;REALTIME_EXPORTS"
 				RuntimeLibrary="0"
+				StructMemberAlignment="1"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -134,7 +138,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\..\..\..\$(ProjectName).dll"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile="realtime.def"
 				GenerateDebugInformation="true"
@@ -163,6 +167,8 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description="Copy realtime.dll to \vfp\realtime\"
+				CommandLine="copy $(OutDir)\$(ProjectName).dll \vfp\realtime\"
 			/>
 		</Configuration>
 	</Configurations>

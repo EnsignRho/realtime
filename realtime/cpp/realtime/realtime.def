@@ -18,3 +18,10 @@ EXPORTS
 	realtime_gauge_setup2
 	realtime_gauge_set_needle_position
 	realtime_gauge_redraw
+
+	realtime_mover_setup
+	realtime_mover_create_object_with_text
+	realtime_mover_acquire_object_from_rect
+	realtime_mover_setup_object
+	realtime_mover_recompute
+	realtime_mover_redraw
