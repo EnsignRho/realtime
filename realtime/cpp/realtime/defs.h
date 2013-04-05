@@ -99,7 +99,7 @@
 	void					iMoverDrawSnaps								(SWindow* tsWnd, SBitmap* bmp, SMoverObj* moSnap);
 	void					iMoverOverlayBitmap							(SWindow* tsWnd, SBitmap* bmp, SMoverObj* mo, SMoverPos* mop, float tfAlp);
 	void					iMoverFillRect								(SWindow* tsWnd, SBitmap* bmp, SMoverObj* mo, SMoverPos* mop, float tfAlp, int tnRgb);
-	void					iMoverGetObjectExtents						(SWindow* tsWnd, int* tnMaxCol, int* tnMaxRow, int* tnMaxWidth, int* tnMaxHeight, bool tlActualOnly);
+	void					iMoverGetObjectExtents						(SWindow* tsWnd, int* tnMaxCol, int* tnMaxRow, int* tnMaxWidth, int* tnMaxHeight);
 	void					iiMoverSetPosition							(SMoverPos* mp, SMoverPos* mpRef, int snapDirection, int x, int y, int width, int height);
 	bool					iiMoverTrackMouseMovement					(SWindow* tsWnd, bool tlForce);
 	bool					iiMoverSnapPositionHasMoved					(SWindow* tsWnd, SMoverPos* snap);
@@ -118,6 +118,7 @@
 	SWindow*				iCreateNewSWindow							(void);
 	void					iDeleteSWindow								(SWindow* tsWnd);
 	SWindow*				iLocateWindow								(int tnHandle);
+	SWindow*				iLocateWindowByParentHwnd					(HWND hwndParent);
 	void					iAppendGraphDataPoint						(SWindow* tsWnd, float tfRangeUpper, float tfRangeLower, float tfFloatDataPoint);
 	bool					iCopyStringIfDifferent						(char** tcDst, char* tcSrc);
 	void					iUpdateFont									(SWindow* tsWnd);
@@ -144,7 +145,7 @@
 	DWORD WINAPI			buildGraphWorkerThreadProc					(LPVOID lpParameter);
 	DWORD WINAPI			buildMoverWorkerThreadProc					(LPVOID lpParameter);
 	LRESULT CALLBACK		realtimeWndProc								(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	VOID CALLBACK			iiMoverTimerProc								(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
+	VOID CALLBACK			iiMoverTimerProc							(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
 	void					iPaintWindow								(SWindow* tsWnd);
 	void					iStoreMouseData								(SMouse* mouse, WPARAM wParam, LPARAM lParam);
-	void					iSignalEventsBasedOnMouseChanges			(SWindow* tsWnd);
+	void					iiSignalEventsBasedOnMouseChanges			(SWindow* tsWnd);

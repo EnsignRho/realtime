@@ -77,3 +77,9 @@
 	const int	_DIRECTION_WEST			= 2;
 	const int	_DIRECTION_EAST			= 3;
 	const int	_DIRECTION_DROP			= 4;
+
+	// Used to indicate the identified components within a
+	const float	_MIDDLE_WIDTH			= 0.60f;
+	const float	_MIDDLE_HEIGHT			= 0.40f;
+	const float	_EDGE_WIDTH				= 0.20f;
+	const float	_EDGE_HEIGHT			= 0.30f;

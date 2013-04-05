@@ -796,7 +796,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	// Called to recompute the actual mover position of each part
 	REALTIME_API int realtime_mover_recompute(int tnHandle)
 	{
-		int			lnCol, lnFoundRow, lnWidth70, lnWidth15, lnHeight70, lnHeight15, lnMarginV, lnMarginH, lnMarginV2, lnMarginH2, lnWidth, lnHeight;
+		int			lnCol, lnFoundRow, lnWidthMid, lnWidthEdge, lnHeightMid, lnHeightEdge, lnMarginVertical, lnMarginHorizontal, lnMarginVerticalHalf, lnMarginHorizontalHalf, lnWidthFull, lnHeightFull;
 		SWindow*	wnd;
 		SMoverObj*	obj;
 		SMoverObj*	objExtent;
@@ -811,21 +811,21 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		if (wnd)
 		{
 			// Search for the indicated object
-			iMoverGetObjectExtents(wnd, &wnd->mover.maxCol, &wnd->mover.maxRow, &wnd->mover.maxWidth, &wnd->mover.maxHeight, true);
+			iMoverGetObjectExtents(wnd, &wnd->mover.maxCol, &wnd->mover.maxRow, &wnd->mover.maxWidth, &wnd->mover.maxHeight);
 
 			// Create our constants
-			lnMarginV	= wnd->mover.marginVertical;
-			lnMarginH	= wnd->mover.marginHorizontal;
-			lnMarginV2	= lnMarginV / 2;
-			lnMarginH2	= lnMarginH / 2;
+			lnMarginVertical		= wnd->mover.marginVertical;
+			lnMarginHorizontal		= wnd->mover.marginHorizontal;
+			lnMarginVerticalHalf	= lnMarginVertical / 2;
+			lnMarginHorizontalHalf	= lnMarginHorizontal / 2;
 
 			// Iterate through the items, positioning them
 			obj = wnd->mover.firstObject;
 			while (obj)
 			{
 				// Position this item
-				obj->real.x			= (float)(lnMarginH + (obj->real.col - 1) * (wnd->mover.maxWidth  + lnMarginH));
-				obj->real.y			= (float)(lnMarginV + (obj->real.row - 1) * (wnd->mover.maxHeight + lnMarginV));
+				obj->real.x			= (float)(lnMarginHorizontal + (obj->real.col - 1) * (wnd->mover.maxWidth  + lnMarginHorizontal));
+				obj->real.y			= (float)(lnMarginVertical + (obj->real.row - 1) * (wnd->mover.maxHeight + lnMarginVertical));
 				obj->real.width		= obj->bmp.bmi.bmiHeader.biWidth;
 				obj->real.height	= obj->bmp.bmi.bmiHeader.biHeight;
 
@@ -834,20 +834,20 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 				iiMoverAnimateTo(wnd, obj, obj->real.col, obj->real.row);
 
 				// Recompute the snap positions
-				lnWidth		= obj->bmp.bmi.bmiHeader.biWidth;
-				lnHeight	= obj->bmp.bmi.bmiHeader.biHeight;
-				lnWidth70	= (int)((float)lnWidth  * 0.70f);
-				lnWidth15	= (int)((float)lnWidth  * 0.15f);
-				lnHeight70	= (int)((float)lnHeight * 0.70f);
-				lnHeight15	= (int)((float)lnHeight * 0.15f);
+				lnWidthFull		= obj->bmp.bmi.bmiHeader.biWidth;
+				lnHeightFull	= obj->bmp.bmi.bmiHeader.biHeight;
+				lnWidthMid		= (int)((float)lnWidthFull  * _MIDDLE_WIDTH);
+				lnWidthEdge		= (int)((float)lnWidthFull  * _EDGE_WIDTH);
+				lnHeightMid		= (int)((float)lnHeightFull * _MIDDLE_HEIGHT);
+				lnHeightEdge	= (int)((float)lnHeightFull * _EDGE_HEIGHT);
 
 				// The basic directions can be thought of as pieces of tape laid atop the original rectangle object.
 				// There's tape in the middle 70% of the top, bottom, as well as the full height of the sides.
-				iiMoverSetPosition(&obj->snapNorth,	&obj->curr,	_DIRECTION_NORTH,	(int)obj->real.x + lnWidth15,				(int)obj->real.y - lnMarginV2,				lnWidth70,					lnMarginV  + lnHeight15);
-				iiMoverSetPosition(&obj->snapSouth,	&obj->curr,	_DIRECTION_SOUTH,	(int)obj->real.x + lnWidth15,				(int)obj->real.y + lnHeight - lnHeight15,	lnWidth70,					lnHeight15 + lnMarginV);
-				iiMoverSetPosition(&obj->snapWest,	&obj->curr,	_DIRECTION_WEST,	(int)obj->real.x - lnMarginH2,				(int)obj->real.y,							lnMarginH2 + lnWidth15,		lnHeight);
-				iiMoverSetPosition(&obj->snapEast,	&obj->curr,	_DIRECTION_EAST,	(int)obj->real.x + lnWidth - lnWidth15,		(int)obj->real.y,							lnWidth15 + lnMarginH2,		lnHeight);
-				iiMoverSetPosition(&obj->snapDrop,	&obj->curr,	_DIRECTION_DROP,	(int)obj->real.x + lnWidth15,				(int)obj->real.y + lnHeight15,				lnWidth70,					lnHeight70);
+				iiMoverSetPosition(&obj->snapNorth,	&obj->curr,	_DIRECTION_NORTH,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y - lnMarginVerticalHalf,			lnWidthMid,									lnMarginVerticalHalf  + lnHeightEdge);
+				iiMoverSetPosition(&obj->snapSouth,	&obj->curr,	_DIRECTION_SOUTH,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y + lnHeightFull - lnHeightEdge,		lnWidthMid,									lnHeightEdge + lnMarginVerticalHalf);
+				iiMoverSetPosition(&obj->snapWest,	&obj->curr,	_DIRECTION_WEST,	(int)obj->real.x - lnMarginHorizontalHalf,		(int)obj->real.y,									lnMarginHorizontalHalf + lnWidthEdge,		lnHeightFull);
+				iiMoverSetPosition(&obj->snapEast,	&obj->curr,	_DIRECTION_EAST,	(int)obj->real.x + lnWidthFull - lnWidthEdge,	(int)obj->real.y,									lnWidthEdge + lnMarginHorizontalHalf,		lnHeightFull);
+				iiMoverSetPosition(&obj->snapDrop,	&obj->curr,	_DIRECTION_DROP,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y + lnHeightEdge,					lnWidthMid,									lnHeightMid + 2);
 
 				// Move to next object
 				obj = obj->next;
@@ -2029,7 +2029,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 // Called to get the maximum extents for each row and columns
 //
 //////
-	void iMoverGetObjectExtents(SWindow* tsWnd, int* tnMaxCol, int* tnMaxRow, int* tnMaxWidth, int* tnMaxHeight, bool tlActualOnly)
+	void iMoverGetObjectExtents(SWindow* tsWnd, int* tnMaxCol, int* tnMaxRow, int* tnMaxWidth, int* tnMaxHeight)
 	{
 		SMoverObj*	obj;
 		SMoverPos*	mop;
@@ -2048,9 +2048,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			obj = tsWnd->mover.firstObject;
 			while (obj)
 			{
-				// Grab the appropriate entry
-				if (!tlActualOnly && tsWnd->mover.isAnimating)		mop = &obj->cand;		// Use the candidate (the terminal location if the object is dropped)
-				else												mop = &obj->real;		// Use the actual location
+				// Use the actual location
+				mop = &obj->real;
 
 				// Check the extent column
 				if (mop->col > *tnMaxCol)
@@ -2387,14 +2386,14 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	bool iiMoverTrackMouseRightButtonReleased(SWindow* tsWnd)
 	{
 		// We do not process any right-mouse events right now, but they can be handled here
-		return(false);
+		return(true);
 	}
 
 	bool iiMoverTrackMouseRightButtonPressed(SWindow* tsWnd)
 	{
 		// We do not process any right-mouse events right now, but they can be handled here
 		gnDrawSnaps = (++gnDrawSnaps) % 2;
-		return(false);
+		return(true);
 	}
 
 	void iiMoverDeleteObjectChain(SMoverObj** objRoot)
@@ -2570,6 +2569,39 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			while (wnd)
 			{
 				if ((int)wnd->hwnd == tnHandle)
+					return(wnd);		// This is it
+
+				// Move to the next item
+				wnd = wnd->next;
+			}
+			// If we get here, not found
+		}
+		// Indicate success or failure
+		return(wnd);
+	}
+
+
+
+
+//////////
+//
+// Called to locate the indicated parent hwnd (window) in the window link list
+//
+//////
+	SWindow* iLocateWindowByParentHwnd(HWND hwndParent)
+	{
+		SWindow* wnd;
+
+
+		// Make sure we have a window "to look through" (so to speak)
+		wnd = NULL;
+		if (gsRootWind)
+		{
+			// Iterate through all windows
+			wnd = gsRootWind;
+			while (wnd)
+			{
+				if (wnd->hwndParent == hwndParent)
 					return(wnd);		// This is it
 
 				// Move to the next item
@@ -3579,7 +3611,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 //////
 	LRESULT CALLBACK realtimeWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		SWindow* wnd;
+		SWindow*	wnd;
+		RECT		lrc;
+		HDC			lhdc;
 		
 
 		// If we are painting, paint our areas
@@ -3594,6 +3628,16 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 						iPaintWindow(wnd);
 						return(0);
 
+					case WM_NCACTIVATE:
+					case WM_NCPAINT:
+						DefWindowProc(hwnd, uMsg, wParam, lParam);
+						SetRect(&lrc, 2, 2, 22, 22);
+						lhdc = GetWindowDC(hwnd);
+						FillRect(lhdc, &lrc, (HBRUSH)GetStockObject(BLACK_BRUSH));
+						ReleaseDC(hwnd, lhdc);
+						return 0;
+						break;
+
 					case WM_ERASEBKGND:
 						// Ignore it
 						return(0);
@@ -3604,8 +3648,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					case WM_RBUTTONDOWN:
 					case WM_RBUTTONUP:
 						iStoreMouseData(&wnd->mouseCurrent, wParam, lParam);
-						if (wnd->type == _TYPE_MOVER)
-							iSignalEventsBasedOnMouseChanges(wnd);
+						iiSignalEventsBasedOnMouseChanges(wnd);
 						break;
 				}
 			}
@@ -3613,6 +3656,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		// Do normal drawing
 		return(DefWindowProc(hwnd, uMsg, wParam, lParam));
 	}
+
 
 
 
@@ -3625,11 +3669,17 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	VOID CALLBACK iiMoverTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
 	{
 		int			lnX, lnY;
+		bool		llMovedOne, llLeft, llRight;
 		SWindow*	wnd;
 		SMoverObj*	obj;
-		bool		llMovedOne;
 		POINT		pt;
-		RECT		rectc;
+		RECT		lrc;
+
+
+		// Grab the cursor position
+		llLeft	= (GetAsyncKeyState(VK_LBUTTON) != 0);
+		llRight	= (GetAsyncKeyState(VK_RBUTTON) != 0);
+		GetCursorPos(&pt);
 
 
 		// Iterate through every window that is the right type and move anything that needs moved
@@ -3639,29 +3689,16 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			// Is this a mover?
 			if (wnd && wnd->type == _TYPE_MOVER)
 			{
-				// Grab current mouse information
+				GetWindowRect((HWND)wnd->hwnd, &lrc);
+				lnX	= pt.x - lrc.left;				lnY	= pt.y - lrc.top;				// Grab current mouse information
 				wnd->mouseCurrent.isValid		= true;
-				wnd->mouseCurrent.leftButton	= (GetAsyncKeyState(VK_LBUTTON) != 0);
-				wnd->mouseCurrent.rightButton	= (GetAsyncKeyState(VK_RBUTTON) != 0);
+				wnd->mouseCurrent.x				= lnX;
+				wnd->mouseCurrent.y				= lnY;
+				wnd->mouseCurrent.leftButton	= llLeft;
+				wnd->mouseCurrent.rightButton	= llRight;
 
-				// Find out where the cursor is
-				GetCursorPos(&pt);
-				GetWindowRect((HWND)wnd->hwnd, &rectc);
-
-				// Are we within our rectangle?
-				if (PtInRect(&rectc, pt))
-				{
-					// Mouse is over our window
-					lnX = pt.x - rectc.left;
-					lnY = pt.y - rectc.top;
-					if (lnX != wnd->mouseCurrent.x || lnY != wnd->mouseCurrent.y)
-					{
-						// Mouse has moved since last poll
-						wnd->mouseCurrent.x		= lnX;
-						wnd->mouseCurrent.y		= lnY;
-						iSignalEventsBasedOnMouseChanges(wnd);
-					}
-				}
+				// Signal any mouse movements
+				iiSignalEventsBasedOnMouseChanges(wnd);
 
 				// Based on animations, move things
 				llMovedOne	= false;
@@ -3727,45 +3764,49 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		mouse->rightButton	= ((wParam & MK_RBUTTON) != 0);
 	}
 
-	void iSignalEventsBasedOnMouseChanges(SWindow* tsWnd)
+	void iiSignalEventsBasedOnMouseChanges(SWindow* tsWnd)
 	{
-		bool llReRender;
+		bool llReRender, llAnyMove, llLeft, llRight;
 
 
 		// If we have a valid set of mouse moves (or more), then process
-		if (tsWnd->mouseLast.isValid)
+		if (tsWnd->type == _TYPE_MOVER && tsWnd->mouseLast.isValid)
 		{
 			// If we get here, we have to see if anything changed
-			llReRender = false;
-			if (tsWnd->mouseLast.x != tsWnd->mouseCurrent.x || tsWnd->mouseLast.y != tsWnd->mouseCurrent.y)
+			llAnyMove	= ((tsWnd->mouseLast.x != tsWnd->mouseCurrent.x) || (tsWnd->mouseLast.y != tsWnd->mouseCurrent.y));
+			llLeft		= (tsWnd->mouseLast.leftButton	!= tsWnd->mouseCurrent.leftButton);
+			llRight		= (tsWnd->mouseLast.rightButton	!= tsWnd->mouseCurrent.rightButton);
+			if (llAnyMove || llLeft || llRight)
 			{
+				// Do we re-render?
+				llReRender	= false;
+
 				// The mouse moved
-				if (tsWnd->type == _TYPE_MOVER)
+				if (llAnyMove)
 					llReRender |= iiMoverTrackMouseMovement(tsWnd, false);
-			}
 
-			// Now we check for button activity
-			if (tsWnd->mouseLast.leftButton != tsWnd->mouseCurrent.leftButton)
-			{
-				if (tsWnd->type == _TYPE_MOVER)
+				// The left button changed
+				if (llLeft)
 				{
-					// The left button changed
-					if (tsWnd->mouseLast.leftButton)	llReRender |= iiMoverTrackMouseLeftButtonReleased(tsWnd);		// The mouse left button has been released
-					else								llReRender |= iiMoverTrackMouseLeftButtonPressed(tsWnd);		// The mouse left button has been pressed
+					if (tsWnd->mouseLast.leftButton)
+						llReRender |= iiMoverTrackMouseLeftButtonReleased(tsWnd);		// The mouse left button has been released
+					else
+						llReRender |= iiMoverTrackMouseLeftButtonPressed(tsWnd);		// The mouse left button has been pressed
 				}
 
-			} else if (tsWnd->mouseLast.rightButton != tsWnd->mouseCurrent.rightButton) {
-				if (tsWnd->type == _TYPE_MOVER)
+				// The right button changed
+				if (llRight)
 				{
-					// The right button changed
-					if (tsWnd->mouseLast.rightButton)	llReRender |= iiMoverTrackMouseRightButtonReleased(tsWnd);		// The mouse right button has been released
-					else								llReRender |= iiMoverTrackMouseRightButtonPressed(tsWnd);		// The mouse right button has been pressed
+					if (tsWnd->mouseLast.rightButton)
+						llReRender |= iiMoverTrackMouseRightButtonReleased(tsWnd);		// The mouse right button has been released
+					else
+						llReRender |= iiMoverTrackMouseRightButtonPressed(tsWnd);		// The mouse right button has been pressed
 				}
-			}
 
-			// If we need to re-render, then do so
-			if (llReRender)
-				iRender(tsWnd);		// Re-render after this movement
+				// If we need to re-render, then do so
+				if (llReRender)
+					iRender(tsWnd);		// Re-render after this movement
+			}
 		}
 
 		// Update the mouse data

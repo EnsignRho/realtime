@@ -89,7 +89,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="copy realtime.dll \vfp\realtime\"
-				CommandLine="copy $(OutDir)\$(ProjectName).dll \vfp\realtime\"
+				CommandLine="copy $(OutDir)\$(ProjectName).dll \vfp\realtime\&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -168,7 +168,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Copy realtime.dll to \vfp\realtime\"
-				CommandLine="copy $(OutDir)\$(ProjectName).dll \vfp\realtime\"
+				CommandLine="copy $(OutDir)\$(ProjectName).dll \vfp\realtime\&#x0D;&#x0A;"
 			/>
 		</Configuration>
 	</Configurations>
