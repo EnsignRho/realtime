@@ -74,6 +74,13 @@
 	REALTIME_API void		realtime_mover_setup						(int tnHandle, int tnMarginVertical, int tnMarginHorizontal);
 	REALTIME_API int		realtime_mover_create_object_with_text		(int tnHandle, int tnWidth, int tnHeight, char* tcText, int tnTextLength, int tnBackRgb, int tnForeRgb, float tfAlpha, char* tcFontName, int tnFontSize, int tnBold, int tnItaclics, int tnUnderline, int tnBorderRgb, int tnBorderThickness);
 	REALTIME_API int		realtime_mover_acquire_object_from_rect		(int tnHandle, int tnHwndParent, int tnUlX, int tnUlY, int tnLrX, int tnLrY);
+	REALTIME_API int		realtime_mover_acquire_from_file			(int tnHandle, int tnHwndParent, char* tcBmp24Name, int tnBmp24NameLength);
+	REALTIME_API int		realtime_mover_save_object					(int tnHandle, int tnObjectId, char* tcFilename, int tnFilenameLength);
+	REALTIME_API int		realtime_mover_set_visible					(int tnHandle, int tnObjectId, int tnVisible);
+	REALTIME_API int		realtime_mover_set_disposition_object		(int tnHandle, int tnObjectId, int tnDispositionObjectId, int tnDisposition);
+	REALTIME_API int		realtime_mover_set_event_mask				(int tnHandle, int tnObjectId, int tnClick, int nRightClick, int tnMouseMove, int tnMouseEnter, int tnMouseLeave, int tnDragStart, int tnDragMove, int tnDragAbort, int tnDragDrop, int tnHover);
+	REALTIME_API int		realtime_mover_overlay_object				(int tnhandle, int tnObjectId, int tnOverlayObjectId, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask);
+	REALTIME_API int		realtime_mover_delete_object				(int tnHandle, int tnObjectId);
 	REALTIME_API int		realtime_mover_setup_object					(int tnHandle, int tnObjectId, int tnCol, int tnRow, int tnDraggable, int tnAcceptsDrops, int tnCopiesOnDrop/*if no, moves on drop*/, int tnCallbackCode);
 	REALTIME_API int		realtime_mover_recompute					(int tnHandle);
 	REALTIME_API void		realtime_mover_redraw						(int tnHandle);

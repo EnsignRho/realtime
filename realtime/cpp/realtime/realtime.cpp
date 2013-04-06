@@ -684,6 +684,11 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 
 
+//////////
+//
+// Called to read the VFP form and acquire whatever's at the rectangular coordinates
+//
+//////
 	REALTIME_API int realtime_mover_acquire_object_from_rect(int tnHandle, int tnHwndParent, int tnUlX, int tnUlY, int tnLrX, int tnLrY)
 	{
 		SWindow*	wnd;
@@ -741,10 +746,72 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		}
 		return(objNew->objId);
 	}
+;
 
 
 
 
+REALTIME_API int realtime_mover_acquire_from_file(int tnHandle, int tnHwndParent, char* tcBmp24Name, int tnBmp24NameLength)
+{
+	return(0);
+}
+
+
+
+
+REALTIME_API int realtime_mover_save_object(int tnHandle, int tnObjectId, char* tcFilename, int tnFilenameLength)
+{
+	return(0);
+}
+
+
+
+
+REALTIME_API int realtime_mover_set_visible(int tnHandle, int tnObjectId, int tnVisible)
+{
+	return(0);
+}
+
+
+
+
+REALTIME_API int realtime_mover_set_disposition_object(int tnHandle, int tnObjectId, int tnDispositionObjectId, int tnDisposition)
+{
+	return(0);
+}
+
+
+
+
+REALTIME_API int realtime_mover_set_event_mask(int tnHandle, int tnObjectId, int tnClick, int nRightClick, int tnMouseMove, int tnMouseEnter, int tnMouseLeave, int tnDragStart, int tnDragMove, int tnDragAbort, int tnDragDrop, int tnHover)
+{
+	return(0);
+}
+
+
+
+
+REALTIME_API int realtime_mover_overlay_object(int tnhandle, int tnObjectId, int tnOverlayObjectId, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask)
+{
+	return(0);
+}
+
+
+
+
+REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
+{
+	return(0);
+}
+
+
+
+
+//////////
+//
+// Specifies information about an object
+//
+//////
 	REALTIME_API int realtime_mover_setup_object(int tnHandle, int tnObjectId, int tnCol, int tnRow, int tnDraggable, int tnAcceptsDrops, int tnCopiesOnDrop/*if no, moves on drop*/, int tnCallbackCode)
 	{
 		SWindow*	wnd;
@@ -3690,7 +3757,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			if (wnd && wnd->type == _TYPE_MOVER)
 			{
 				GetWindowRect((HWND)wnd->hwnd, &lrc);
-				lnX	= pt.x - lrc.left;				lnY	= pt.y - lrc.top;				// Grab current mouse information
+				lnX	= pt.x - lrc.left;
+				lnY	= pt.y - lrc.top;
+
+				// Grab current mouse information
 				wnd->mouseCurrent.isValid		= true;
 				wnd->mouseCurrent.x				= lnX;
 				wnd->mouseCurrent.y				= lnY;
