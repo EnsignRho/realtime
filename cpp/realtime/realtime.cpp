@@ -765,8 +765,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		BITMAPFILEHEADER	lbh;
 		BITMAPINFOHEADER	lbi;
 		char*				lbd;
-		SRGB*				lrgbd;
-		SRGB*				lrgbs;
 
 
 		lnResult = -1;
@@ -810,8 +808,11 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 								// Put the bitmap into the dc
 								SelectObject(objNew->bmp.hdc, objNew->bmp.hbmp);
 
-								// Copy over the bitmap
-// TODO: working her
+								// Copy over the bitmap bits
+								memcpy(objNew->bmp.bits, lbd, objNew->bmp.bmi.bmiHeader.biSizeImage);
+								
+								// Free our now redundant copy of the bits
+								free(lbd);
 
 								// Indicate our success
 								lnResult = objNew->objectId;
@@ -827,9 +828,18 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		return(lnResult);
 	}
 
-	bool iIsValid24BitBitmap(BITMAPFILEHEADER* tbfh, BITMAPINFOHEADER* tbfi)
-	{
 
+
+
+//////////
+//
+// Called to create an object based on part or all of an existing object
+//
+//////
+	REALTIME_API int realtime_mover_acquire_inner_rect(int tnHandle, int tnObjectId, int tnUlX, int tnUlY, int tnLrX, int tnLrY)
+	{
+// TODO:  working here
+		return(0);
 	}
 
 
@@ -3059,7 +3069,23 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 //////
 	bool iIsValid24BitBitmap(BITMAPFILEHEADER* tbh, BITMAPINFOHEADER* tbi)
 	{
-// TODO: working her
+		if (tbh && tbi)
+		{
+			if (tbh->bfType != 'MB')								return(false);		// All bitmap files begin with "BM" as first two bytes
+			if (tbh->bfOffBits != sizeof(tbh) + tbi->biSize)		return(false);		// Sizing calculations verify data validity
+			if (tbh->bfSize != tbh->bfOffBits + tbi->biSize)		return(false);		// Sizing calculations verify data validity
+			// When we get here, the file header is good, and part of the info header (or so it seems)
+
+			if (tbi->biPlanes != 1)									return(false);		// All 24-bit bitmaps are 1 plane
+			if (tbi->biBitCount != 24)								return(false);		// Other forms are valid, but we only recognize 24-bit bitmaps (for now)
+			if (tbi->biCompression != 0)							return(false);		// We do not support any compression formats
+			// When we get here, we're good
+
+			// Indicate our success
+			return(true);
+		}
+		// If we get here, failure
+		return(false);
 	}
 
 

@@ -75,6 +75,7 @@
 	REALTIME_API int		realtime_mover_create_object_with_text		(int tnHandle, int tnWidth, int tnHeight, char* tcText, int tnTextLength, int tnBackRgb, int tnForeRgb, float tfAlpha, char* tcFontName, int tnFontSize, int tnBold, int tnItaclics, int tnUnderline, int tnBorderRgb, int tnBorderThickness);
 	REALTIME_API int		realtime_mover_acquire_object_from_rect		(int tnHandle, int tnHwndParent, int tnUlX, int tnUlY, int tnLrX, int tnLrY);
 	REALTIME_API int		realtime_mover_acquire_from_file			(int tnHandle, char* tcBmp24Name, int tnBmp24NameLength);
+	REALTIME_API int		realtime_mover_acquire_inner_rect			(int tnHandle, int tnObjectId, int tnUlX, int tnUlY, int tnLrX, int tnLrY);
 	REALTIME_API int		realtime_mover_save_object					(int tnHandle, int tnObjectId, char* tcFilename, int tnFilenameLength);
 	REALTIME_API int		realtime_mover_set_visible					(int tnHandle, int tnObjectId, int tnVisible);
 	REALTIME_API int		realtime_mover_set_disposition_object		(int tnHandle, int tnObjectId, int tnDispositionObjectId, int tnDisposition);

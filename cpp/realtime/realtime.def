@@ -23,6 +23,7 @@ EXPORTS
 	realtime_mover_create_object_with_text
 	realtime_mover_acquire_object_from_rect
 	realtime_mover_acquire_from_file
+	realtime_mover_acquire_inner_rect
 	realtime_mover_save_object
 	realtime_mover_set_visible
 	realtime_mover_set_disposition_object
