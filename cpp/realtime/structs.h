@@ -158,7 +158,7 @@ struct SMoverPos
 struct SMoverObj
 {
 	SMoverObj*		next;									// One-way link list
-	int				objId;									// Unique ID assigned to this control
+	int				objectId;								// Unique ID assigned to this control
 
 	// For normal and animation (real=where it really is, curr=where it is currently (if animating, then as it's moving), cand=where it will drop if the user drops at the current snap position
 	SMoverPos		real;									// Where its real home is (were nothing being moved at the current time)

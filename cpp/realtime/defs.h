@@ -102,6 +102,7 @@
 	float					iGaugeGetSnappedNeedleValue					(SWindow* tsWnd);
 
 	SMoverObj*				iMoverAppendNewObject						(SWindow* tsWnd);
+	SMoverObj*				iMoverFindObject							(SWindow* tsWnd, int tnObjectId);
 	void					iMoverDrawObjects							(SWindow* tsWnd, SBitmap* bmp);
 	void					iMoverDrawSnaps								(SWindow* tsWnd, SBitmap* bmp, SMoverObj* moSnap);
 	void					iMoverOverlayBitmap							(SWindow* tsWnd, SBitmap* bmp, SMoverObj* mo, SMoverPos* mop, float tfAlp);

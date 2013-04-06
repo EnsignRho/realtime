@@ -678,7 +678,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 // 				fclose(lfh);
 			}
 		}
-		return(objNew->objId);
+		return(objNew->objectId);
 	}
 
 
@@ -744,7 +744,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 // 				fclose(lfh);
 			}
 		}
-		return(objNew->objId);
+		return(objNew->objectId);
 	}
 ;
 
@@ -761,7 +761,46 @@ REALTIME_API int realtime_mover_acquire_from_file(int tnHandle, int tnHwndParent
 
 REALTIME_API int realtime_mover_save_object(int tnHandle, int tnObjectId, char* tcFilename, int tnFilenameLength)
 {
-	return(0);
+	int					lnResult, lnNumWritten1, lnNumWritten2, lnNumWritten3;
+	FILE*				lfh;
+	char				lcFilename[_MAX_PATH];
+	SWindow*			wnd;
+	SMoverObj*			obj;
+	BITMAPFILEHEADER	bfh;
+
+
+	lnResult = -1;
+	wnd = iLocateWindow(tnHandle);
+	if (wnd && tcFilename && tnFilenameLength != 0)
+	{
+		obj = iMoverFindObject(wnd, tnObjectId);
+		if (obj)
+		{
+			// Prepare the filename
+			memset(lcFilename, 0, sizeof(lcFilename));
+			memcpy(lcFilename, tcFilename, min(sizeof(lcFilename) - 1, tnFilenameLength));
+
+			// Create the disk header
+			memset(&bfh, 0, sizeof(bfh));
+			bfh.bfType		= 'MB';
+			bfh.bfOffBits	= sizeof(bfh) + sizeof(obj->bmp.bmi.bmiHeader);
+			bfh.bfSize		= bfh.bfOffBits + obj->bmp.bmi.bmiHeader.biSizeImage;
+
+			// Try to create the indicated file
+			if (fopen_s(&lfh, lcFilename, "wb+") == 0)
+			{
+				lnNumWritten1	= fwrite(&bfh,						1, sizeof(bfh),							lfh);
+				lnNumWritten2	= fwrite(&obj->bmp.bmi.bmiHeader,	1, sizeof(obj->bmp.bmi.bmiHeader),		lfh);
+				lnNumWritten3	= fwrite(obj->bmp.bits,				1, obj->bmp.bmi.bmiHeader.biSizeImage,	lfh);
+				fclose(lfh);
+
+				// See if we were successful
+				lnResult = ((lnNumWritten1 == sizeof(bfh)) && (lnNumWritten2 = sizeof(obj->bmp.bmi.bmiHeader)) && (lnNumWritten3 && obj->bmp.bmi.bmiHeader.biSizeImage));
+			}
+		}
+	}
+	// Indicate our success
+	return(lnResult);
 }
 
 
@@ -831,7 +870,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			while (obj)
 			{
 				// Is this our object?
-				if (obj->objId == tnObjectId)
+				if (obj->objectId == tnObjectId)
 				{
 					// Set the values
 					obj->col			= tnCol;				// Column for this item
@@ -1926,10 +1965,42 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			*moPrev = moNew;
 
 			// Set the unique Id
-			moNew->objId	= iGetNextUniqueId();
+			moNew->objectId	= iGetNextUniqueId();
 		}
 		// Indicate our status
 		return(moNew);
+	}
+
+
+
+
+//////////
+//
+// Called to find the object
+//
+//////
+	SMoverObj* iMoverFindObject(SWindow* tsWnd, int tnObjectId)
+	{
+		SMoverObj*	obj;
+
+
+		// Make sure our environment is sane
+		if (tsWnd)
+		{
+			// Iterate through all objects
+			obj = tsWnd->mover.firstObject;
+			while (obj)
+			{
+				// Is this the correct object?
+				if (obj->objectId == tnObjectId)
+					return(obj);
+
+				// Move to next object
+				obj = obj->next;
+			}
+		}
+		// Failure
+		return(NULL);
 	}
 
 
