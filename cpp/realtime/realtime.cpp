@@ -652,7 +652,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 				objNew->bmp.hdc		= CreateCompatibleDC(wnd->hdc1);
 				objNew->bmp.hbmp	= CreateDIBSection(objNew->bmp.hdc, &objNew->bmp.bmi, DIB_RGB_COLORS, (void**)&objNew->bmp.bits, NULL, 0);
 
-				// Put the bitmap into the dc3
+				// Put the bitmap into the dc
 				SelectObject(objNew->bmp.hdc, objNew->bmp.hbmp);
 
 				// Create the image based on what they've asked for
@@ -723,7 +723,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 				objNew->bmp.hdc		= CreateCompatibleDC(wnd->hdc1);
 				objNew->bmp.hbmp	= CreateDIBSection(objNew->bmp.hdc, &objNew->bmp.bmi, DIB_RGB_COLORS, (void**)&objNew->bmp.bits, NULL, 0);
 
-				// Put the bitmap into the dc3
+				// Put the bitmap into the dc
 				SelectObject(objNew->bmp.hdc, objNew->bmp.hbmp);
 
 				// Do the physical capture of the bitmap data there
@@ -746,62 +746,143 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		}
 		return(objNew->objectId);
 	}
-;
 
 
 
 
-REALTIME_API int realtime_mover_acquire_from_file(int tnHandle, int tnHwndParent, char* tcBmp24Name, int tnBmp24NameLength)
-{
-	return(0);
-}
-
-
-
-
-REALTIME_API int realtime_mover_save_object(int tnHandle, int tnObjectId, char* tcFilename, int tnFilenameLength)
-{
-	int					lnResult, lnNumWritten1, lnNumWritten2, lnNumWritten3;
-	FILE*				lfh;
-	char				lcFilename[_MAX_PATH];
-	SWindow*			wnd;
-	SMoverObj*			obj;
-	BITMAPFILEHEADER	bfh;
-
-
-	lnResult = -1;
-	wnd = iLocateWindow(tnHandle);
-	if (wnd && tcFilename && tnFilenameLength != 0)
+//////////
+//
+// Called to load the indicated 24-bit bitmap from disk, and create an object based on its image
+//
+//////
+	REALTIME_API int realtime_mover_acquire_from_file(int tnHandle, char* tcBmp24Name, int tnBmp24NameLength)
 	{
-		obj = iMoverFindObject(wnd, tnObjectId);
-		if (obj)
+		int					lnResult, lnNumread1, lnNumread2, lnNumread3;
+		SWindow*			wnd;
+		SMoverObj*			objNew;
+		FILE*				lfh;
+		char				lcFilename[_MAX_PATH];
+		BITMAPFILEHEADER	lbh;
+		BITMAPINFOHEADER	lbi;
+		char*				lbd;
+		SRGB*				lrgbd;
+		SRGB*				lrgbs;
+
+
+		lnResult = -1;
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
 		{
 			// Prepare the filename
 			memset(lcFilename, 0, sizeof(lcFilename));
-			memcpy(lcFilename, tcFilename, min(sizeof(lcFilename) - 1, tnFilenameLength));
+			memcpy(lcFilename, tcBmp24Name, min(sizeof(lcFilename) - 1, tnBmp24NameLength));
 
-			// Create the disk header
-			memset(&bfh, 0, sizeof(bfh));
-			bfh.bfType		= 'MB';
-			bfh.bfOffBits	= sizeof(bfh) + sizeof(obj->bmp.bmi.bmiHeader);
-			bfh.bfSize		= bfh.bfOffBits + obj->bmp.bmi.bmiHeader.biSizeImage;
-
-			// Try to create the indicated file
-			if (fopen_s(&lfh, lcFilename, "wb+") == 0)
+			// Try to open the file
+			if (fopen_s(&lfh, lcFilename, "rb") == 0)
 			{
-				lnNumWritten1	= fwrite(&bfh,						1, sizeof(bfh),							lfh);
-				lnNumWritten2	= fwrite(&obj->bmp.bmi.bmiHeader,	1, sizeof(obj->bmp.bmi.bmiHeader),		lfh);
-				lnNumWritten3	= fwrite(obj->bmp.bits,				1, obj->bmp.bmi.bmiHeader.biSizeImage,	lfh);
-				fclose(lfh);
+				// Try to read the header
+				lnNumread1	= fread(&lbh, 1, sizeof(lbh), lfh);
+				lnNumread2	= fread(&lbh, 1, sizeof(lbi), lfh);
+				if (lnNumread1 == sizeof(lbh) && lnNumread2 == sizeof(lbi) && iIsValid24BitBitmap(&lbh, &lbi))
+				{
+					// Read in the data bits
+					lbd = (char*)malloc(lbi.biSizeImage);
+					if (lbd)
+					{
+						// Load in the data
+						lnNumread3 = fread(lbd, 1, lbi.biSizeImage, lfh);
+						if (lnNumread3 = lbi.biSizeImage)
+						{
+							// Create the object
+							objNew = iMoverAppendNewObject(wnd);
+							if (objNew)
+							{
+								// Copy the loaded data over to the new object
+								memcpy(&objNew->bmp.bmi.bmiHeader, &lbi, min(sizeof(lbi), sizeof(objNew->bmp.bmi.bmiHeader)));
+								objNew->bmp.bmi.bmiHeader.biSize = sizeof(objNew->bmp.bmi.bmiHeader.biSize);
 
-				// See if we were successful
-				lnResult = ((lnNumWritten1 == sizeof(bfh)) && (lnNumWritten2 = sizeof(obj->bmp.bmi.bmiHeader)) && (lnNumWritten3 && obj->bmp.bmi.bmiHeader.biSizeImage));
+								// Setup object constants
+								objNew->bmp.actualWidth						= iComputeActualWidth(&objNew->bmp.bmi.bmiHeader);
+								objNew->bmp.bmi.bmiHeader.biSizeImage		= objNew->bmp.actualWidth * lbi.biHeight;
+								objNew->bmp.hdc								= CreateCompatibleDC(wnd->hdc1);
+								objNew->bmp.hbmp							= CreateDIBSection(objNew->bmp.hdc, &objNew->bmp.bmi, DIB_RGB_COLORS, (void**)&objNew->bmp.bits, NULL, 0);
+
+								// Put the bitmap into the dc
+								SelectObject(objNew->bmp.hdc, objNew->bmp.hbmp);
+
+								// Copy over the bitmap
+// TODO: working her
+
+								// Indicate our success
+								lnResult = objNew->objectId;
+							}
+						}
+					}
+				}
+				// Close the file
+				fclose(lfh);
 			}
 		}
+		// Indicate our success
+		return(lnResult);
 	}
-	// Indicate our success
-	return(lnResult);
-}
+
+	bool iIsValid24BitBitmap(BITMAPFILEHEADER* tbfh, BITMAPINFOHEADER* tbfi)
+	{
+
+	}
+
+
+
+
+//////////
+//
+// Save the indicated object to disk
+//
+//////
+	REALTIME_API int realtime_mover_save_object(int tnHandle, int tnObjectId, char* tcFilename, int tnFilenameLength)
+	{
+		int					lnResult, lnNumWritten1, lnNumWritten2, lnNumWritten3;
+		FILE*				lfh;
+		char				lcFilename[_MAX_PATH];
+		SWindow*			wnd;
+		SMoverObj*			obj;
+		BITMAPFILEHEADER	bfh;
+
+
+		lnResult = -1;
+		wnd = iLocateWindow(tnHandle);
+		if (wnd && tcFilename && tnFilenameLength != 0)
+		{
+			obj = iMoverFindObject(wnd, tnObjectId);
+			if (obj)
+			{
+				// Prepare the filename
+				memset(lcFilename, 0, sizeof(lcFilename));
+				memcpy(lcFilename, tcFilename, min(sizeof(lcFilename) - 1, tnFilenameLength));
+
+				// Create the disk header
+				memset(&bfh, 0, sizeof(bfh));
+				bfh.bfType		= 'MB';
+				bfh.bfOffBits	= sizeof(bfh) + sizeof(obj->bmp.bmi.bmiHeader);
+				bfh.bfSize		= bfh.bfOffBits + obj->bmp.bmi.bmiHeader.biSizeImage;
+
+				// Try to create the indicated file
+				if (fopen_s(&lfh, lcFilename, "wb+") == 0)
+				{
+					lnNumWritten1	= fwrite(&bfh,						1, sizeof(bfh),							lfh);
+					lnNumWritten2	= fwrite(&obj->bmp.bmi.bmiHeader,	1, sizeof(obj->bmp.bmi.bmiHeader),		lfh);
+					lnNumWritten3	= fwrite(obj->bmp.bits,				1, obj->bmp.bmi.bmiHeader.biSizeImage,	lfh);
+					fclose(lfh);
+
+					// See if we were successful
+					lnResult = ((lnNumWritten1 == sizeof(bfh)) && (lnNumWritten2 = sizeof(obj->bmp.bmi.bmiHeader)) && (lnNumWritten3 && obj->bmp.bmi.bmiHeader.biSizeImage));
+				}
+			}
+		}
+		// Indicate our success
+		return(lnResult);
+	}
 
 
 
@@ -2966,6 +3047,19 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			// Move to next row (bitmaps are stored upside down)
 			lrgb = (SRGB*)((char*)lrgb - bmp->actualWidth);
 		}
+	}
+
+
+
+
+//////////
+//
+// Validates that the bitmap header is correct
+//
+//////
+	bool iIsValid24BitBitmap(BITMAPFILEHEADER* tbh, BITMAPINFOHEADER* tbi)
+	{
+// TODO: working her
 	}
 
 
