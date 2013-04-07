@@ -79,11 +79,12 @@
 	REALTIME_API int		realtime_mover_save_object					(int tnHandle, int tnObjectId, char* tcFilename, int tnFilenameLength);
 	REALTIME_API int		realtime_mover_set_visible					(int tnHandle, int tnObjectId, int tnVisible);
 	REALTIME_API int		realtime_mover_set_disposition_object		(int tnHandle, int tnObjectId, int tnDispositionObjectId, int tnDisposition);
-	REALTIME_API int		realtime_mover_set_event_mask				(int tnHandle, int tnObjectId, int tnClick, int nRightClick, int tnMouseMove, int tnMouseEnter, int tnMouseLeave, int tnDragStart, int tnDragMove, int tnDragAbort, int tnDragDrop, int tnHover);
+	REALTIME_API int		realtime_mover_set_event_mask				(int tnHandle, int tnObjectId, int tnClick, int tnRightClick, int tnMouseMove, int tnMouseEnter, int tnMouseLeave, int tnDragStart, int tnDragMove, int tnDragAbort, int tnDragDrop, int tnHover);
 	REALTIME_API int		realtime_mover_overlay_object				(int tnhandle, int tnObjectId, int tnOverlayObjectId, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask);
 	REALTIME_API int		realtime_mover_delete_object				(int tnHandle, int tnObjectId);
 	REALTIME_API int		realtime_mover_setup_object					(int tnHandle, int tnObjectId, int tnCol, int tnRow, int tnDraggable, int tnAcceptsDrops, int tnCopiesOnDrop/*if no, moves on drop*/, int tnCallbackCode);
 	REALTIME_API int		realtime_mover_recompute					(int tnHandle);
+	REALTIME_API void		realtime_mover_get_graphic_extents			(int tnHandle, int tnObjectId, char* tcXHome16, char* tcYHome16, char* tcWidth16, char* tcHeight16, char* tcXDest16, char* tcYDest16, char* tcXStep16, char* tcYStep16, char* tcAnimationStepCount16);
 	REALTIME_API void		realtime_mover_redraw						(int tnHandle);
 
 
@@ -104,6 +105,7 @@
 
 	SMoverObj*				iMoverAppendNewObject						(SWindow* tsWnd);
 	SMoverObj*				iMoverLocateObject							(SWindow* tsWnd, int tnObjectId);
+	int						iMoverDeleteObject							(SWindow* tsWnd, int tnObjectId);
 	void					iMoverDrawObjects							(SWindow* tsWnd, SBitmap* bmp);
 	void					iMoverDrawSnaps								(SWindow* tsWnd, SBitmap* bmp, SMoverObj* moSnap);
 	void					iMoverOverlayBitmap							(SWindow* tsWnd, SBitmap* bmp, SMoverObj* mo, SMoverPos* mop, float tfAlp);
@@ -136,6 +138,7 @@
 	bool					iIsValid24BitBitmap							(BITMAPFILEHEADER* tbh, BITMAPINFOHEADER* tbi);
 	void					iApplyOverlayBmpFile						(SWindow* tsWnd, SBitmap* bmp, float tfX1, float tfY1, float tfX2, float tfY2, float tfTheta, unsigned char* tcOverlayBmpFile);
 	void					iOverlayBitmap								(SWindow* tsWnd, SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, float tfAlpha);
+	void					iExtractBitmap								(SBitmap* bmpDst, SBitmap* bmpSrc, HDC thdc, int tnUlX, int tnUlY, int tnLrX, int tnLrY);
 	void					iOverlayRectangle							(SWindow* tsWnd, SBitmap* bmp, int tnUlX, int tnUlY, int tnLrX, int tnLrY, int tnFillRgb, int tnFrameRgb);
 	void					iDrawLineVertical							(SWindow* tsWnd, SBitmap* bmp, int tnX, int tnUY, int tnLY, int tnRgb);
 	void					iDrawLineVerticalAlpha						(SWindow* tsWnd, SBitmap* bmp, int tnX, int tnUY, int tnLY, int tnRgb, float tfAlp);
@@ -148,6 +151,8 @@
 	bool					iIsBetween									(int tnTestValue, int tnValue1, int tnValue2);
 	void					iLtrimBuffer								(char* tcData);
 	int						iComputeActualWidth							(BITMAPINFOHEADER* tbi);
+	void					iStoreFloat									(char* tcDest16, float tfValue);
+	void					iStoreInt									(char* tcDest16, int tnValue);
 
 	void					iRender										(SWindow* tsWnd);
 	DWORD WINAPI			buildGaugeWorkerThreadProc					(LPVOID lpParameter);

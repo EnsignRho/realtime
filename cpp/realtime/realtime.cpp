@@ -863,8 +863,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					if (tnLrY == -1)	tnLrY = obj->bmp.bmi.bmiHeader.biHeight;
 
 					// Extract the indicated portion
-// TODO: working here
-					iExtractBitmap(&objNew->bmp, &obj->bmp, tnUlX, tnUlY, tnLrX, tnLrY);
+					iExtractBitmap(&objNew->bmp, &obj->bmp, wnd->hdc1, tnUlX, tnUlY, tnLrX, tnLrY);
+
+					// All done!
+					lnResult = objNew->objectId;
 				}
 			}
 		}
@@ -929,6 +931,23 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 REALTIME_API int realtime_mover_set_visible(int tnHandle, int tnObjectId, int tnVisible)
 {
+	SWindow*	wnd;
+	SMoverObj*	obj;
+
+
+	// Grab our window
+	wnd = iLocateWindow(tnHandle);
+	if (wnd)
+	{
+		// Search for the indicated object
+		obj = iMoverLocateObject(wnd, tnObjectId);
+		if (obj)
+		{
+			obj->visible = tnVisible;
+			return(tnObjectId);
+		}
+	}
+	// Failure
 	return(0);
 }
 
@@ -937,14 +956,87 @@ REALTIME_API int realtime_mover_set_visible(int tnHandle, int tnObjectId, int tn
 
 REALTIME_API int realtime_mover_set_disposition_object(int tnHandle, int tnObjectId, int tnDispositionObjectId, int tnDisposition)
 {
+	SWindow*	wnd;
+	SMoverObj*	obj;
+	SMoverObj*	objDisp;
+
+
+	// Grab our window
+	wnd = iLocateWindow(tnHandle);
+	if (wnd)
+	{
+		// Search for the indicated object
+		obj = iMoverLocateObject(wnd, tnObjectId);
+		if (obj)
+		{
+			// Try to find the disposition object
+			objDisp = iMoverLocateObject(wnd, tnDispositionObjectId);
+			if (objDisp)
+			{
+				// Store it
+				switch (tnDisposition)
+				{
+					case _DISP_NORMAL:
+						obj->dispNormal = tnDispositionObjectId;
+						break;
+					case _DISP_OVER:
+						obj->dispOver = tnDispositionObjectId;
+						break;
+					case _DISP_DOWN:
+						obj->dispDown = tnDispositionObjectId;
+						break;
+					case _DISP_HOVER:
+						obj->dispHover = tnDispositionObjectId;
+						break;
+					case _DISP_DRAGGING:
+						obj->dispDragging = tnDispositionObjectId;
+						break;
+					default:
+						return(0);		// Unknown disposition
+				}
+				// If we get here, we're good
+				return(tnObjectId);
+			}
+		}
+	}
+	// Failure
 	return(0);
 }
 
 
 
 
-REALTIME_API int realtime_mover_set_event_mask(int tnHandle, int tnObjectId, int tnClick, int nRightClick, int tnMouseMove, int tnMouseEnter, int tnMouseLeave, int tnDragStart, int tnDragMove, int tnDragAbort, int tnDragDrop, int tnHover)
+REALTIME_API int realtime_mover_set_event_mask(int tnHandle, int tnObjectId, int tnClick, int tnRightClick, int tnMouseMove, int tnMouseEnter, int tnMouseLeave, int tnDragStart, int tnDragMove, int tnDragAbort, int tnDragDrop, int tnHover)
 {
+	SWindow*	wnd;
+	SMoverObj*	obj;
+
+
+	// Grab our window
+	wnd = iLocateWindow(tnHandle);
+	if (wnd)
+	{
+		// Search for the indicated object
+		obj = iMoverLocateObject(wnd, tnObjectId);
+		if (obj)
+		{
+			// Store the event mask settings
+			obj->eventClick			= tnClick;						// Responds to left-click events
+			obj->eventRightClick	= tnRightClick;					// Responds to right-click events
+			obj->eventMouseMove		= tnMouseMove;					// Responds to mouse move events
+			obj->eventMouseEnter	= tnMouseEnter;					// Responds to mouse enter events
+			obj->eventMouseLeave	= tnMouseLeave;					// Responds to mouse leave events
+			obj->eventDragStart		= tnDragStart;					// Responds to drag start events
+			obj->eventDragMove		= tnDragMove;					// Responds to drag move events (in lieu of mouseMove events while dragging)
+			obj->eventDragAbort		= tnDragAbort;					// Responds to drag abort events (drag was not completed, dropped in some non-droppable area)
+			obj->eventDragDrop		= tnDragDrop;					// Responds to drag drop events (dropped in a droppable area)
+			obj->eventHover			= tnHover;						// Responds to hover events
+
+			// We're good!
+			return(tnObjectId);
+		}
+	}
+	// Failure
 	return(0);
 }
 
@@ -961,6 +1053,15 @@ REALTIME_API int realtime_mover_overlay_object(int tnhandle, int tnObjectId, int
 
 REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 {
+	SWindow*	wnd;
+	
+
+	// Grab our window
+	wnd = iLocateWindow(tnHandle);
+	if (wnd)
+		return(iMoverDeleteObject(wnd, tnObjectId));
+
+	// Failure
 	return(0);
 }
 
@@ -987,28 +1088,21 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		if (wnd)
 		{
 			// Search for the indicated object
-			obj = wnd->mover.firstObject;
-			while (obj)
+			obj = iMoverLocateObject(wnd, tnObjectId);
+			if (obj)
 			{
-				// Is this our object?
-				if (obj->objectId == tnObjectId)
-				{
-					// Set the values
-					obj->col			= tnCol;				// Column for this item
-					obj->row			= tnRow;				// Row for this item
-					obj->real.col		= tnCol;				// Col for this item
-					obj->real.row		= tnRow;				// Row for this item
-					obj->draggable		= tnDraggable;			// Is this item draggable?
-					obj->acceptsDrops	= tnAcceptsDrops;		// Does this item accept other items dropped onto it?
-					obj->copiesOnDrop	= tnCopiesOnDrop;		// if no, moves on drop
-					obj->callbackCode	= tnCallbackCode;		// if non-zero, then signals the parent hwnd of events
+				// Set the values
+				obj->col			= tnCol;				// Column for this item
+				obj->row			= tnRow;				// Row for this item
+				obj->real.col		= tnCol;				// Col for this item
+				obj->real.row		= tnRow;				// Row for this item
+				obj->draggable		= tnDraggable;			// Is this item draggable?
+				obj->acceptsDrops	= tnAcceptsDrops;		// Does this item accept other items dropped onto it?
+				obj->copiesOnDrop	= tnCopiesOnDrop;		// if no, moves on drop
+				obj->callbackCode	= tnCallbackCode;		// if non-zero, then signals the parent hwnd of events
 
-					// We're good
-					return(0);
-				}
-
-				// Move to the next object
-				obj = obj->next;
+				// We're good
+				return(0);
 			}
 			// If we get here, object not found for window
 			return(-1);
@@ -1128,6 +1222,42 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		}
 		// If we get here, error
 		return(-1);
+	}
+
+
+
+
+//////////
+//
+// Returns information about the graphical qualities of this object
+//
+//////
+	REALTIME_API void realtime_mover_get_graphic_extents(int tnHandle, int tnObjectId, char* tcXHome16, char* tcYHome16, char* tcWidth16, char* tcHeight16, char* tcXDest16, char* tcYDest16, char* tcXStep16, char* tcYStep16, char* tcAnimationStepCount16)
+	{
+		SWindow*	wnd;
+		SMoverObj*	obj;
+
+
+		// Locate the window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+		{
+			obj = iMoverLocateObject(wnd, tnObjectId);
+			if (obj)
+			{
+				// Store the information
+				iStoreFloat(tcXHome16,				obj->real.x);
+				iStoreFloat(tcYHome16,				obj->real.y);
+				iStoreInt(tcWidth16,				obj->bmp.bmi.bmiHeader.biWidth);
+				iStoreInt(tcHeight16,				obj->bmp.bmi.bmiHeader.biHeight);
+				iStoreFloat(tcXDest16,				obj->curr.x);
+				iStoreFloat(tcYDest16,				obj->curr.y);
+				iStoreFloat(tcXStep16,				obj->curr.xStep);
+				iStoreFloat(tcYStep16,				obj->curr.yStep);
+				iStoreInt(tcAnimationStepCount16,	obj->curr.stepCount);
+			}
+		}
+		// If we get here, failure
 	}
 
 
@@ -2129,6 +2259,57 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 //////////
 //
+// Called to delete a specific object
+//
+//////
+	int iMoverDeleteObject(SWindow* tsWnd, int tnObjectId)
+	{
+		SMoverObj*	objNext;
+		SMoverObj*	obj;
+		SMoverObj**	objPrev;
+
+
+		// Make sure our environment is sane
+		if (tsWnd && tsWnd->type == _TYPE_MOVER && tsWnd->mover.firstObject)
+		{
+			obj		= tsWnd->mover.firstObject;
+			objPrev	= &tsWnd->mover.firstObject;
+			while (obj)
+			{
+				// Grab the next entry
+				objNext = obj->next;
+
+				// Is this the object to delete?
+				if (obj->objectId == tnObjectId)
+				{
+					// Yes, update the backlink to point to the entry after this (if any)
+					*objPrev = obj->next;
+
+					// Delete this entry's data
+					DeleteObject((HGDIOBJ)obj->bmp.hbmp);
+					DeleteDC(obj->bmp.hdc);
+					free(obj->bmp.bits);
+
+					// Delete this entry
+					free(obj);
+
+					// All done!
+					return(tnObjectId);
+				}
+
+				// Move to the next entry
+				obj = objNext;
+			}
+		}
+		// Failure
+		return(0);
+	}
+
+
+
+
+//////////
+//
 // Called to draw the objects at their actual or current positions (depending on whether or not
 // they're moving at the current time)
 //
@@ -2668,6 +2849,11 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			{
 				// Grab the next entry
 				objNext = obj->next;
+
+				// Delete this entry's data
+				DeleteObject((HGDIOBJ)obj->bmp.hbmp);
+				DeleteDC(obj->bmp.hdc);
+				free(obj->bmp.bits);
 
 				// Delete this entry
 				free(obj);
@@ -3246,6 +3432,78 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 
 
+//////////
+//
+// Extracts the indicated bitmap out of the src, populating the bits into the destination.
+// Note:  It is assumed that even if bmpDst is currently populated, it has been freed and is
+//        ready to be overwritten.
+//
+//////
+	void iExtractBitmap(SBitmap* bmpDst, SBitmap* bmpSrc, HDC thdc, int tnUlX, int tnUlY, int tnLrX, int tnLrY)
+	{
+		int		lnX, lnY;
+		SRGB*	lrgbs;
+		SRGB*	lrgbd;
+
+
+		// Make sure our environment is sane
+		if (bmpDst && bmpSrc && tnUlX < tnLrX && tnUlY < tnLrY)
+		{
+			// Create the new structure
+			// Create a DIB section of the appropriate size
+			memset(&bmpDst->bmi, 0, sizeof(bmpDst->bmi));
+			bmpDst->bmi.bmiHeader.biSize			= sizeof(bmpDst->bmi.bmiHeader);
+			bmpDst->bmi.bmiHeader.biWidth			= tnLrX - tnUlX;
+			bmpDst->bmi.bmiHeader.biHeight			= tnLrY - tnUlY;
+			bmpDst->bmi.bmiHeader.biCompression		= 0;
+			bmpDst->bmi.bmiHeader.biPlanes			= 1;
+			bmpDst->bmi.bmiHeader.biBitCount		= 24;
+			bmpDst->bmi.bmiHeader.biXPelsPerMeter	= 3270;
+			bmpDst->bmi.bmiHeader.biYPelsPerMeter	= 3270;
+			// Compute the actual width
+			bmpDst->actualWidth						= iComputeActualWidth(&bmpDst->bmi.bmiHeader);
+			bmpDst->bmi.bmiHeader.biSizeImage		= bmpDst->actualWidth * (tnLrY - tnUlY);
+			bmpDst->hdc		= CreateCompatibleDC(thdc);
+			bmpDst->hbmp	= CreateDIBSection(bmpDst->hdc, &bmpDst->bmi, DIB_RGB_COLORS, (void**)&bmpDst->bits, NULL, 0);
+
+			// Put the bitmap into the dc
+			SelectObject(bmpDst->hdc, bmpDst->hbmp);
+
+			// Extract and copy the bits as we go, row by row
+			for (lnY = 0; lnY < bmpSrc->bmi.bmiHeader.biHeight; lnY++)
+			{
+				// Compute the source and destination pointers
+				lrgbs = (SRGB*)(bmpSrc->bits + ((bmpSrc->bmi.bmiHeader.biHeight - lnY - 1)         * bmpSrc->actualWidth));
+				lrgbd = (SRGB*)(bmpDst->bits + ((bmpDst->bmi.bmiHeader.biHeight - lnY - tnUlY - 1) * bmpDst->actualWidth) + (tnUlX * 3));
+
+				// For every pixel horizontally on this line, copy it
+				for (lnX = 0; lnX < bmpSrc->bmi.bmiHeader.biWidth; lnX++)
+				{
+					// Are we within bounds?
+					if (lnY + tnUlY < bmpDst->bmi.bmiHeader.biHeight && lnX + tnUlX < bmpDst->bmi.bmiHeader.biWidth)
+					{
+						// Copy this pixel
+						lrgbd->red	= lrgbs->red;
+						lrgbd->grn	= lrgbs->grn;
+						lrgbd->blu	= lrgbs->blu;
+
+					} else {
+						// Fill it with black
+						lrgbd->red	= 0;
+						lrgbd->grn	= 0;
+						lrgbd->blu	= 0;
+					}
+					// Move to next pixel
+					++lrgbs;
+					++lrgbd;
+				}
+			}
+		}
+	}
+
+
+
+
 	void iOverlayRectangle(SWindow* tsWnd, SBitmap* bmp, int tnUlX, int tnUlY, int tnLrX, int tnLrY, int tnFillRgb, int tnFrameRgb)
 	{
 		unsigned char	lnFrameRed, lnFrameGrn, lnFrameBlu, lnFillRed, lnFillGrn, lnFillBlu;
@@ -3739,6 +3997,32 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		} else {
 			// It is evenly divisible by 4 when multiplied by 3 (dword aligned)
 			return(tbi->biWidth * 3);
+		}
+	}
+
+
+
+
+//////////
+//
+// Converts values to strings if they are valid
+//
+//////
+	void iStoreFloat(char* tcDest16, float tfValue)
+	{
+		if (tcDest16)
+		{
+			memset(tcDest16, 32, 16);
+			sprintf_s(tcDest16, 16, "%08.2f", tfValue);
+		}
+	}
+
+	void iStoreInt(char* tcDest16, int tnValue)
+	{
+		if (tcDest16)
+		{
+			memset(tcDest16, 32, 16);
+			sprintf_s(tcDest16, 16, "%08u", tnValue);
 		}
 	}
 

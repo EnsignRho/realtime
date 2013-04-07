@@ -83,3 +83,10 @@
 	const float	_MIDDLE_HEIGHT			= 0.40f;
 	const float	_EDGE_WIDTH				= 0.20f;
 	const float	_EDGE_HEIGHT			= 0.30f;
+
+	// Disposition object overrides for rendering
+	const int	_DISP_NORMAL			= 1;
+	const int	_DISP_OVER				= 2;
+	const int	_DISP_DOWN				= 3;
+	const int	_DISP_HOVER				= 4;
+	const int	_DISP_DRAGGING			= 5;

@@ -159,6 +159,7 @@ struct SMoverObj
 {
 	SMoverObj*		next;									// One-way link list
 	int				objectId;								// Unique ID assigned to this control
+	int				visible;								// 0=no, others=yes
 
 	// For normal and animation (real=where it really is, curr=where it is currently (if animating, then as it's moving), cand=where it will drop if the user drops at the current snap position
 	SMoverPos		real;									// Where its real home is (were nothing being moved at the current time)
@@ -172,6 +173,18 @@ struct SMoverObj
 	SMoverPos		snapEast;								// To the right of this object
 	SMoverPos		snapDrop;								// Snap to an item as it's being dropped on
 
+	// Events this object responds to (by default, responds to no events, 0=no, others=yes)
+	int				eventClick;								// Responds to left-click events
+	int				eventRightClick;						// Responds to right-click events
+	int				eventMouseMove;							// Responds to mouse move events
+	int				eventMouseEnter;						// Responds to mouse enter events
+	int				eventMouseLeave;						// Responds to mouse leave events
+	int				eventDragStart;							// Responds to drag start events
+	int				eventDragMove;							// Responds to drag move events (in lieu of mouseMove events while dragging)
+	int				eventDragAbort;							// Responds to drag abort events (drag was not completed, dropped in some non-droppable area)
+	int				eventDragDrop;							// Responds to drag drop events (dropped in a droppable area)
+	int				eventHover;								// Responds to hover events
+
 	// Settings for the object
 	int				col;									// Column position
 	int				row;									// Row position
@@ -182,6 +195,12 @@ struct SMoverObj
 
 	// The bitmap being drawn there
 	SBitmap			bmp;									// Bitmap data
+	// If disposition objects are indicated, we'll use those at various times
+	int				dispNormal;								// Normal rendering bitmap
+	int				dispOver;								// When the mouse is over the object rendering bitmap
+	int				dispDown;								// When the mouse is pressed down on the object rendering bitmap
+	int				dispHover;								// When hovering over the object rendering bitmap
+	int				dispDragging;							// When dragging the object rendering bitmap
 };
 
 struct SMover
