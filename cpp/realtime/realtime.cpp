@@ -838,8 +838,38 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 //////
 	REALTIME_API int realtime_mover_acquire_inner_rect(int tnHandle, int tnObjectId, int tnUlX, int tnUlY, int tnLrX, int tnLrY)
 	{
-// TODO:  working here
-		return(0);
+		int				lnResult;
+		SWindow*		wnd;
+		SMoverObj*		obj;
+		SMoverObj*		objNew;
+
+
+		// Locate the window
+		lnResult = -1;
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+		{
+			obj = iMoverLocateObject(wnd, tnObjectId);
+			if (obj)
+			{
+				// Create a new object
+				objNew = iMoverAppendNewObject(wnd);
+				if (objNew)
+				{
+					// See if they want all of some of it extracted
+					if (tnUlX == -1)	tnUlX = 0;
+					if (tnUlY == -1)	tnUlY = 0;
+					if (tnLrX == -1)	tnLrX = obj->bmp.bmi.bmiHeader.biWidth;
+					if (tnLrY == -1)	tnLrY = obj->bmp.bmi.bmiHeader.biHeight;
+
+					// Extract the indicated portion
+// TODO: working here
+					iExtractBitmap(&objNew->bmp, &obj->bmp, tnUlX, tnUlY, tnLrX, tnLrY);
+				}
+			}
+		}
+		// Indicate our status
+		return(lnResult);
 	}
 
 
@@ -864,7 +894,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		wnd = iLocateWindow(tnHandle);
 		if (wnd && tcFilename && tnFilenameLength != 0)
 		{
-			obj = iMoverFindObject(wnd, tnObjectId);
+			obj = iMoverLocateObject(wnd, tnObjectId);
 			if (obj)
 			{
 				// Prepare the filename
@@ -2070,7 +2100,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 // Called to find the object
 //
 //////
-	SMoverObj* iMoverFindObject(SWindow* tsWnd, int tnObjectId)
+	SMoverObj* iMoverLocateObject(SWindow* tsWnd, int tnObjectId)
 	{
 		SMoverObj*	obj;
 
