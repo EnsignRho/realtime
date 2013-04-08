@@ -137,7 +137,8 @@
 	void					iGradient4VerticalLine						(SWindow* tsWnd, SBitmap* bmp, int tnX, float tfRTop, float tfGTop, float tfBTop, float tfRBot, float tfGBot, float tfBBot);
 	bool					iIsValid24BitBitmap							(BITMAPFILEHEADER* tbh, BITMAPINFOHEADER* tbi);
 	void					iApplyOverlayBmpFile						(SWindow* tsWnd, SBitmap* bmp, float tfX1, float tfY1, float tfX2, float tfY2, float tfTheta, unsigned char* tcOverlayBmpFile);
-	void					iOverlayBitmap								(SWindow* tsWnd, SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, float tfAlpha);
+	void					iOverlayBitmap								(SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, float tfAlpha);
+	void					iOverlayBitmapViaMethod						(SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask);
 	void					iExtractBitmap								(SBitmap* bmpDst, SBitmap* bmpSrc, HDC thdc, int tnUlX, int tnUlY, int tnLrX, int tnLrY);
 	void					iOverlayRectangle							(SWindow* tsWnd, SBitmap* bmp, int tnUlX, int tnUlY, int tnLrX, int tnLrY, int tnFillRgb, int tnFrameRgb);
 	void					iDrawLineVertical							(SWindow* tsWnd, SBitmap* bmp, int tnX, int tnUY, int tnLY, int tnRgb);

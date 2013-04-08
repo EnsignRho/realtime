@@ -1045,6 +1045,22 @@ REALTIME_API int realtime_mover_set_event_mask(int tnHandle, int tnObjectId, int
 
 REALTIME_API int realtime_mover_overlay_object(int tnhandle, int tnObjectId, int tnOverlayObjectId, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask)
 {
+	SWindow*	wnd;
+	SMoverObj*	objDst;
+	SMoverObj*	objSrc;
+
+
+	// Grab our window
+	wnd = iLocateWindow(tnhandle);
+	if (wnd)
+	{
+		// Locate our objects
+		objDst = iMoverLocateObject(wnd, tnObjectId);
+		objSrc = iMoverLocateObject(wnd, tnOverlayObjectId);
+		if (objDst && objSrc)
+			iOverlayBitmapViaMethod(&objDst->bmp, &objSrc->bmp, tnX, tnY, tnOverlayMethod, tfAlp, tnRgbMask);
+	}
+	// Failure
 	return(0);
 }
 
@@ -2288,7 +2304,6 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 					// Delete this entry's data
 					DeleteObject((HGDIOBJ)obj->bmp.hbmp);
 					DeleteDC(obj->bmp.hdc);
-					free(obj->bmp.bits);
 
 					// Delete this entry
 					free(obj);
@@ -2410,10 +2425,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 	{
 		// Make sure our environment is sane
 		if (tsWnd && bmp && mo && mop && mop->col != 0 && mop->row != 0)
-		{
-			// Draw it at the indicated alpha level at the location where it's at right now
-			iOverlayBitmap(tsWnd, bmp, &mo->bmp, (int)mop->x, (int)mop->y, tfAlpha);
-		}
+			iOverlayBitmap(bmp, &mo->bmp, (int)mop->x, (int)mop->y, tfAlpha);		// Draw it at the indicated alpha level at the location where it's at right now
 	}
 
 
@@ -2853,7 +2865,6 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				// Delete this entry's data
 				DeleteObject((HGDIOBJ)obj->bmp.hbmp);
 				DeleteDC(obj->bmp.hdc);
-				free(obj->bmp.bits);
 
 				// Delete this entry
 				free(obj);
@@ -3387,8 +3398,22 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 // Called to overlay the indicated bitmap using the specified alpha
 //
 //////
-	void iOverlayBitmap(SWindow* tsWnd, SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, float tfAlp)
+	void iOverlayBitmap(SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, float tfAlp)
 	{
+		iOverlayBitmapViaMethod(bmpDst, bmpSrc, tnX, tnY, _METHOD_ALPHA, tfAlp, 0);
+	}
+
+
+
+
+//////////
+//
+// Called to overlay the indicated bitmap using the indicated method
+//
+//////
+	void iOverlayBitmapViaMethod(SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask)
+	{
+		char	lnRedMask, lnGrnMask, lnBluMask;
 		int		lnX, lnY;
 		float	lfMalp;
 		SRGB*	lrgbs;
@@ -3397,32 +3422,71 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 		if (bmpDst && bmpDst->bits && bmpDst->hbmp && bmpSrc && bmpSrc->bits && bmpSrc->hbmp)
 		{
-			// For every row, copy it pixel by pixel
-			lfMalp = 1.0f - tfAlp;
-			for (lnY = 0; lnY + tnY < bmpDst->bmi.bmiHeader.biHeight && lnY < bmpSrc->bmi.bmiHeader.biHeight; lnY++)
+			if (tnOverlayMethod == _METHOD_OPAQUE || tnOverlayMethod == _METHOD_ALPHA || tnOverlayMethod == _METHOD_MASKED || tnOverlayMethod == (_METHOD_ALPHA + _METHOD_MASKED))
 			{
-				// We we drawing on the target?
-				if (lnY + tnY >= 0)
+				// For every row, copy it pixel by pixel
+				lnRedMask	= red(tnRgbMask);
+				lnGrnMask	= grn(tnRgbMask);
+				lnBluMask	= blu(tnRgbMask);
+				lfMalp		= 1.0f - tfAlp;
+				for (lnY = 0; lnY + tnY < bmpDst->bmi.bmiHeader.biHeight && lnY < bmpSrc->bmi.bmiHeader.biHeight; lnY++)
 				{
-					// Get our pointers into source and destination
-					lrgbs = (SRGB*)(bmpSrc->bits + ((bmpSrc->bmi.bmiHeader.biHeight - lnY - 1)       * bmpSrc->actualWidth));
-					lrgbd = (SRGB*)(bmpDst->bits + ((bmpDst->bmi.bmiHeader.biHeight - lnY - tnY - 1) * bmpDst->actualWidth) + (tnX * 3));
-
-					// For every pixel across this bitmap, do the copy
-					for (lnX = 0; lnX + tnX < bmpDst->bmi.bmiHeader.biWidth && lnX < bmpSrc->bmi.bmiHeader.biWidth; lnX++)
+					// We we drawing on the target?
+					if (lnY + tnY >= 0)
 					{
-						// Are we drawing on the target area?
-						if (lnX + tnX >= 0)
-						{
-							// Copy this pixel
-							lrgbd->red	= (unsigned char)(((float)lrgbd->red * lfMalp) + ((float)lrgbs->red * tfAlp));
-							lrgbd->grn	= (unsigned char)(((float)lrgbd->grn * lfMalp) + ((float)lrgbs->grn * tfAlp));
-							lrgbd->blu	= (unsigned char)(((float)lrgbd->blu * lfMalp) + ((float)lrgbs->blu * tfAlp));
-						}
+						// Get our pointers into source and destination
+						lrgbs = (SRGB*)(bmpSrc->bits + ((bmpSrc->bmi.bmiHeader.biHeight - lnY - 1)       * bmpSrc->actualWidth));
+						lrgbd = (SRGB*)(bmpDst->bits + ((bmpDst->bmi.bmiHeader.biHeight - lnY - tnY - 1) * bmpDst->actualWidth) + (tnX * 3));
 
-						// Move to next pixel
-						++lrgbd;
-						++lrgbs;
+						// For every pixel across this bitmap, do the copy
+						for (lnX = 0; lnX + tnX < bmpDst->bmi.bmiHeader.biWidth && lnX < bmpSrc->bmi.bmiHeader.biWidth; lnX++)
+						{
+							// Are we drawing on the target area?
+							if (lnX + tnX >= 0)
+							{
+								// Copy this pixel
+								switch (tnOverlayMethod)
+								{
+									case _METHOD_OPAQUE:
+										// Just copy
+										lrgbd->red	= lrgbs->red;
+										lrgbd->grn	= lrgbs->grn;
+										lrgbd->blu	= lrgbs->blu;
+										break;
+
+									case _METHOD_ALPHA:
+										// Alpha blend
+										lrgbd->red	= (unsigned char)(((float)lrgbd->red * lfMalp) + ((float)lrgbs->red * tfAlp));
+										lrgbd->grn	= (unsigned char)(((float)lrgbd->grn * lfMalp) + ((float)lrgbs->grn * tfAlp));
+										lrgbd->blu	= (unsigned char)(((float)lrgbd->blu * lfMalp) + ((float)lrgbs->blu * tfAlp));
+										break;
+
+									case _METHOD_MASKED:
+										// Copy all except
+										if (lrgbs->red != lnRedMask && lrgbs->grn != lnGrnMask && lrgbs->blu != lnBluMask)
+										{
+											lrgbd->red	= lrgbs->red;
+											lrgbd->grn	= lrgbs->grn;
+											lrgbd->blu	= lrgbs->blu;
+										}
+										break;
+
+									case _METHOD_ALPHA + _METHOD_MASKED:
+										// Alpha blend if not a mask color
+										if (lrgbs->red != lnRedMask && lrgbs->grn != lnGrnMask && lrgbs->blu != lnBluMask)
+										{
+											lrgbd->red	= (unsigned char)(((float)lrgbd->red * lfMalp) + ((float)lrgbs->red * tfAlp));
+											lrgbd->grn	= (unsigned char)(((float)lrgbd->grn * lfMalp) + ((float)lrgbs->grn * tfAlp));
+											lrgbd->blu	= (unsigned char)(((float)lrgbd->blu * lfMalp) + ((float)lrgbs->blu * tfAlp));
+										}
+										break;
+								}
+							}
+
+							// Move to next pixel
+							++lrgbd;
+							++lrgbs;
+						}
 					}
 				}
 			}

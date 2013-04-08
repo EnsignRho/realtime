@@ -90,3 +90,8 @@
 	const int	_DISP_DOWN				= 3;
 	const int	_DISP_HOVER				= 4;
 	const int	_DISP_DRAGGING			= 5;
+
+	// Methods for overlaying one bitmap on another
+	const int	_METHOD_OPAQUE			= 1;		// Raw copy byte per byte
+	const int	_METHOD_ALPHA			= 2;		// Copy via alpha
+	const int	_METHOD_MASKED			= 4;		// Copy all colors except the one mask color
