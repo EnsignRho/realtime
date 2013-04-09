@@ -778,9 +778,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			// Try to open the file
 			if (fopen_s(&lfh, lcFilename, "rb") == 0)
 			{
+				// The disk header may not be as complex as our lbi, so set everything else to NULL
+				memset(&lbi, 0, sizeof(lbi));
+
 				// Try to read the header
 				lnNumread1	= fread(&lbh, 1, sizeof(lbh), lfh);
-				lnNumread2	= fread(&lbh, 1, sizeof(lbi), lfh);
+				lnNumread2	= fread(&lbi, 1, sizeof(lbi), lfh);
 				if (lnNumread1 == sizeof(lbh) && lnNumread2 == sizeof(lbi) && iIsValid24BitBitmap(&lbh, &lbi))
 				{
 					// Read in the data bits
@@ -788,6 +791,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					if (lbd)
 					{
 						// Load in the data
+						fseek(lfh, lbh.bfOffBits, SEEK_SET);
 						lnNumread3 = fread(lbd, 1, lbi.biSizeImage, lfh);
 						if (lnNumread3 = lbi.biSizeImage)
 						{
@@ -797,7 +801,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 							{
 								// Copy the loaded data over to the new object
 								memcpy(&objNew->bmp.bmi.bmiHeader, &lbi, min(sizeof(lbi), sizeof(objNew->bmp.bmi.bmiHeader)));
-								objNew->bmp.bmi.bmiHeader.biSize = sizeof(objNew->bmp.bmi.bmiHeader.biSize);
+								objNew->bmp.bmi.bmiHeader.biSize = sizeof(objNew->bmp.bmi.bmiHeader);
 
 								// Setup object constants
 								objNew->bmp.actualWidth						= iComputeActualWidth(&objNew->bmp.bmi.bmiHeader);
@@ -3298,14 +3302,14 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 	{
 		if (tbh && tbi)
 		{
-			if (tbh->bfType != 'MB')								return(false);		// All bitmap files begin with "BM" as first two bytes
-			if (tbh->bfOffBits != sizeof(tbh) + tbi->biSize)		return(false);		// Sizing calculations verify data validity
-			if (tbh->bfSize != tbh->bfOffBits + tbi->biSize)		return(false);		// Sizing calculations verify data validity
+			if (tbh->bfType != 'MB')											return(false);		// All bitmap files begin with "BM" as first two bytes
+			if (tbh->bfOffBits != sizeof(BITMAPFILEHEADER) + tbi->biSize)		return(false);		// Sizing calculations verify data validity
+			if (tbh->bfSize != tbh->bfOffBits + tbi->biSizeImage)				return(false);		// Sizing calculations verify data validity
 			// When we get here, the file header is good, and part of the info header (or so it seems)
 
-			if (tbi->biPlanes != 1)									return(false);		// All 24-bit bitmaps are 1 plane
-			if (tbi->biBitCount != 24)								return(false);		// Other forms are valid, but we only recognize 24-bit bitmaps (for now)
-			if (tbi->biCompression != 0)							return(false);		// We do not support any compression formats
+			if (tbi->biPlanes != 1)					return(false);		// All 24-bit bitmaps are 1 plane
+			if (tbi->biBitCount != 24)				return(false);		// Other forms are valid, but we only recognize 24-bit bitmaps (for now)
+			if (tbi->biCompression != 0)			return(false);		// We do not support any compression formats
 			// When we get here, we're good
 
 			// Indicate our success
@@ -3413,11 +3417,11 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 //////
 	void iOverlayBitmapViaMethod(SBitmap* bmpDst, SBitmap* bmpSrc, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask)
 	{
-		char	lnRedMask, lnGrnMask, lnBluMask;
-		int		lnX, lnY;
-		float	lfMalp;
-		SRGB*	lrgbs;
-		SRGB*	lrgbd;
+		unsigned char	lnRedMask, lnGrnMask, lnBluMask;
+		int				lnX, lnY;
+		float			lfMalp;
+		SRGB*			lrgbs;
+		SRGB*			lrgbd;
 
 
 		if (bmpDst && bmpDst->bits && bmpDst->hbmp && bmpSrc && bmpSrc->bits && bmpSrc->hbmp)
