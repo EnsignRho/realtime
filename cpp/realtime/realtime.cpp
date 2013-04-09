@@ -236,10 +236,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		SWindow* wnd;
 
 
-		// Are we in test mode?
-		if (glTestMode)
-			return;
-
 		// Make sure we have something to subclass
 		if (gsRootWind)
 		{
@@ -767,6 +763,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		char*				lbd;
 
 
+		// Are we in test mode?
+		if (glTestMode)
+			return 0;
+
 		lnResult = -1;
 		wnd = iLocateWindow(tnHandle);
 		if (wnd)
@@ -848,6 +848,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		SMoverObj*		objNew;
 
 
+		// Are we in test mode?
+		if (glTestMode)
+			return 0;
+
 		// Locate the window
 		lnResult = -1;
 		wnd = iLocateWindow(tnHandle);
@@ -896,6 +900,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		BITMAPFILEHEADER	bfh;
 
 
+		// Are we in test mode?
+		if (glTestMode)
+			return 0;
+
 		lnResult = -1;
 		wnd = iLocateWindow(tnHandle);
 		if (wnd && tcFilename && tnFilenameLength != 0)
@@ -939,6 +947,10 @@ REALTIME_API int realtime_mover_set_visible(int tnHandle, int tnObjectId, int tn
 	SMoverObj*	obj;
 
 
+	// Are we in test mode?
+	if (glTestMode)
+		return 0;
+
 	// Grab our window
 	wnd = iLocateWindow(tnHandle);
 	if (wnd)
@@ -964,6 +976,10 @@ REALTIME_API int realtime_mover_set_disposition_object(int tnHandle, int tnObjec
 	SMoverObj*	obj;
 	SMoverObj*	objDisp;
 
+
+	// Are we in test mode?
+	if (glTestMode)
+		return 0;
 
 	// Grab our window
 	wnd = iLocateWindow(tnHandle);
@@ -1016,6 +1032,10 @@ REALTIME_API int realtime_mover_set_event_mask(int tnHandle, int tnObjectId, int
 	SMoverObj*	obj;
 
 
+	// Are we in test mode?
+	if (glTestMode)
+		return 0;
+
 	// Grab our window
 	wnd = iLocateWindow(tnHandle);
 	if (wnd)
@@ -1054,6 +1074,10 @@ REALTIME_API int realtime_mover_overlay_object(int tnhandle, int tnObjectId, int
 	SMoverObj*	objSrc;
 
 
+	// Are we in test mode?
+	if (glTestMode)
+		return 0;
+
 	// Grab our window
 	wnd = iLocateWindow(tnhandle);
 	if (wnd)
@@ -1075,6 +1099,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 {
 	SWindow*	wnd;
 	
+
+	// Are we in test mode?
+	if (glTestMode)
+		return 0;
 
 	// Grab our window
 	wnd = iLocateWindow(tnHandle);
@@ -1263,6 +1291,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		SWindow*	wnd;
 		SMoverObj*	obj;
 
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
 
 		// Locate the window
 		wnd = iLocateWindow(tnHandle);
