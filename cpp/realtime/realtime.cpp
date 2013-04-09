@@ -1164,31 +1164,34 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			obj = wnd->mover.firstObject;
 			while (obj)
 			{
-				// Position this item
-				obj->real.x			= (float)(lnMarginHorizontal + (obj->real.col - 1) * (wnd->mover.maxWidth  + lnMarginHorizontal));
-				obj->real.y			= (float)(lnMarginVertical + (obj->real.row - 1) * (wnd->mover.maxHeight + lnMarginVertical));
-				obj->real.width		= obj->bmp.bmi.bmiHeader.biWidth;
-				obj->real.height	= obj->bmp.bmi.bmiHeader.biHeight;
+				if (obj->visible != 0)
+				{
+					// Position this item
+					obj->real.x			= (float)(lnMarginHorizontal + (obj->real.col - 1) * (wnd->mover.maxWidth  + lnMarginHorizontal));
+					obj->real.y			= (float)(lnMarginVertical + (obj->real.row - 1) * (wnd->mover.maxHeight + lnMarginVertical));
+					obj->real.width		= obj->bmp.bmi.bmiHeader.biWidth;
+					obj->real.height	= obj->bmp.bmi.bmiHeader.biHeight;
 
-				// Copy real to current
-				memcpy(&obj->curr, &obj->real, sizeof(SMoverPos));
-				iiMoverAnimateTo(wnd, obj, obj->real.col, obj->real.row);
+					// Copy real to current
+					memcpy(&obj->curr, &obj->real, sizeof(SMoverPos));
+					iiMoverAnimateTo(wnd, obj, obj->real.col, obj->real.row);
 
-				// Recompute the snap positions
-				lnWidthFull		= obj->bmp.bmi.bmiHeader.biWidth;
-				lnHeightFull	= obj->bmp.bmi.bmiHeader.biHeight;
-				lnWidthMid		= (int)((float)lnWidthFull  * _MIDDLE_WIDTH);
-				lnWidthEdge		= (int)((float)lnWidthFull  * _EDGE_WIDTH);
-				lnHeightMid		= (int)((float)lnHeightFull * _MIDDLE_HEIGHT);
-				lnHeightEdge	= (int)((float)lnHeightFull * _EDGE_HEIGHT);
+					// Recompute the snap positions
+					lnWidthFull		= obj->bmp.bmi.bmiHeader.biWidth;
+					lnHeightFull	= obj->bmp.bmi.bmiHeader.biHeight;
+					lnWidthMid		= (int)((float)lnWidthFull  * _MIDDLE_WIDTH);
+					lnWidthEdge		= (int)((float)lnWidthFull  * _EDGE_WIDTH);
+					lnHeightMid		= (int)((float)lnHeightFull * _MIDDLE_HEIGHT);
+					lnHeightEdge	= (int)((float)lnHeightFull * _EDGE_HEIGHT);
 
-				// The basic directions can be thought of as pieces of tape laid atop the original rectangle object.
-				// There's tape in the middle 70% of the top, bottom, as well as the full height of the sides.
-				iiMoverSetPosition(&obj->snapNorth,	&obj->curr,	_DIRECTION_NORTH,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y - lnMarginVerticalHalf,			lnWidthMid,									lnMarginVerticalHalf  + lnHeightEdge);
-				iiMoverSetPosition(&obj->snapSouth,	&obj->curr,	_DIRECTION_SOUTH,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y + lnHeightFull - lnHeightEdge,		lnWidthMid,									lnHeightEdge + lnMarginVerticalHalf);
-				iiMoverSetPosition(&obj->snapWest,	&obj->curr,	_DIRECTION_WEST,	(int)obj->real.x - lnMarginHorizontalHalf,		(int)obj->real.y,									lnMarginHorizontalHalf + lnWidthEdge,		lnHeightFull);
-				iiMoverSetPosition(&obj->snapEast,	&obj->curr,	_DIRECTION_EAST,	(int)obj->real.x + lnWidthFull - lnWidthEdge,	(int)obj->real.y,									lnWidthEdge + lnMarginHorizontalHalf,		lnHeightFull);
-				iiMoverSetPosition(&obj->snapDrop,	&obj->curr,	_DIRECTION_DROP,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y + lnHeightEdge,					lnWidthMid,									lnHeightMid + 2);
+					// The basic directions can be thought of as pieces of tape laid atop the original rectangle object.
+					// There's tape in the middle 70% of the top, bottom, as well as the full height of the sides.
+					iiMoverSetPosition(&obj->snapNorth,	&obj->curr,	_DIRECTION_NORTH,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y - lnMarginVerticalHalf,			lnWidthMid,									lnMarginVerticalHalf  + lnHeightEdge);
+					iiMoverSetPosition(&obj->snapSouth,	&obj->curr,	_DIRECTION_SOUTH,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y + lnHeightFull - lnHeightEdge,		lnWidthMid,									lnHeightEdge + lnMarginVerticalHalf);
+					iiMoverSetPosition(&obj->snapWest,	&obj->curr,	_DIRECTION_WEST,	(int)obj->real.x - lnMarginHorizontalHalf,		(int)obj->real.y,									lnMarginHorizontalHalf + lnWidthEdge,		lnHeightFull);
+					iiMoverSetPosition(&obj->snapEast,	&obj->curr,	_DIRECTION_EAST,	(int)obj->real.x + lnWidthFull - lnWidthEdge,	(int)obj->real.y,									lnWidthEdge + lnMarginHorizontalHalf,		lnHeightFull);
+					iiMoverSetPosition(&obj->snapDrop,	&obj->curr,	_DIRECTION_DROP,	(int)obj->real.x + lnWidthEdge,					(int)obj->real.y + lnHeightEdge,					lnWidthMid,									lnHeightMid + 2);
+				}
 
 				// Move to next object
 				obj = obj->next;
@@ -1202,24 +1205,27 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				obj			= wnd->mover.firstObject;
 				while (obj)
 				{
-					// Is this on the column?
-					if (obj->col == lnCol)
+					if (obj->visible != 0)
 					{
-						if (!objExtent || obj->row > lnFoundRow)
+						// Is this on the column?
+						if (obj->col == lnCol)
 						{
-							// Note our new furthest extent object
-							objExtent	= obj;
-							lnFoundRow	= obj->row;
-						}
+							if (!objExtent || obj->row > lnFoundRow)
+							{
+								// Note our new furthest extent object
+								objExtent	= obj;
+								lnFoundRow	= obj->row;
+							}
 
-						// If we're on the right-most column, we also need to extend the east entry more
-						if (lnCol == wnd->mover.maxCol)
-						{
-							// All of these items get extended right to the end of the bitmap
-							if (obj->snapEast.x < wnd->bmpMain.bmi.bmiHeader.biWidth)
-								obj->snapEast.width = wnd->bmpMain.bmi.bmiHeader.biWidth - (int)obj->snapEast.x;
-						}
+							// If we're on the right-most column, we also need to extend the east entry more
+							if (lnCol == wnd->mover.maxCol)
+							{
+								// All of these items get extended right to the end of the bitmap
+								if (obj->snapEast.x < wnd->bmpMain.bmi.bmiHeader.biWidth)
+									obj->snapEast.width = wnd->bmpMain.bmi.bmiHeader.biWidth - (int)obj->snapEast.x;
+							}
 
+						}
 					}
 					// Move to next object
 					obj = obj->next;
@@ -2235,8 +2241,9 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			// Update the back link
 			*moPrev = moNew;
 
-			// Set the unique Id
+			// Set the unique Id and default visible status
 			moNew->objectId	= iGetNextUniqueId();
+			moNew->visible	= 1;
 		}
 		// Indicate our status
 		return(moNew);
@@ -2335,8 +2342,8 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 //////
 	void iMoverDrawObjects(SWindow* tsWnd, SBitmap* bmp)
 	{
-		SMoverObj*	mo;
-		SMoverObj*	moSnap;
+		SMoverObj*	obj;
+		SMoverObj*	objSnap;
 		SMoverPos	snapSouth;
 
 
@@ -2344,34 +2351,37 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		if (tsWnd)
 		{
 			// Iterate through every object
-			moSnap	= NULL;
-			mo		= tsWnd->mover.firstObject;
-			while (mo)
+			objSnap	= NULL;
+			obj		= tsWnd->mover.firstObject;
+			while (obj)
 			{
-				if (tsWnd->mover.dragObject && (tsWnd->mover.snapReal.row != 0 || tsWnd->mover.snapReal.col != 0))
+				if (obj->visible != 0)
 				{
-					// Draw this item at its current location
-					iMoverOverlayBitmap(tsWnd, bmp, mo, &mo->curr, 0.33f);
+					if (tsWnd->mover.dragObject && (tsWnd->mover.snapReal.row != 0 || tsWnd->mover.snapReal.col != 0))
+					{
+						// Draw this item at its current location
+						iMoverOverlayBitmap(tsWnd, bmp, obj, &obj->curr, 0.33f);
 
-				} else {
-					// Draw this item at its current location
-					iMoverOverlayBitmap(tsWnd, bmp, mo, &mo->real, 1.0f);
+					} else {
+						// Draw this item at its current location
+						iMoverOverlayBitmap(tsWnd, bmp, obj, &obj->real, 1.0f);
+					}
+
+					// If this is the item in the snap position
+					if (tsWnd->mover.snap.row != 0 && tsWnd->mover.snap.col != 0 && obj->real.row == tsWnd->mover.snapReal.row && obj->real.col == tsWnd->mover.snapReal.col)
+						objSnap = obj;
+
+					// If need be, draw the snap to rectangles
+					if (gnDrawSnaps == 2)
+						iMoverDrawSnaps(tsWnd, bmp, obj);
 				}
 
-				// If this is the item in the snap position
-				if (tsWnd->mover.snap.row != 0 && tsWnd->mover.snap.col != 0 && mo->real.row == tsWnd->mover.snapReal.row && mo->real.col == tsWnd->mover.snapReal.col)
-					moSnap = mo;
-
-				// If need be, draw the snap to rectangles
-				if (gnDrawSnaps == 2)
-					iMoverDrawSnaps(tsWnd, bmp, mo);
-
 				// Move to next object
-				mo = mo->next;
+				obj = obj->next;
 			}
 
 			// Draw the field that would be snapped
-			if (moSnap)
+			if (objSnap)
 			{
 				// Draw the snapped item where it would go
 				if (tsWnd->mover.dragObject)
@@ -2379,26 +2389,26 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 					if (tsWnd->mover.snap.snapDirection == _DIRECTION_SOUTH)
 					{
 						// We need to draw this item one row below where it is, because the triggering snap event was on the row above
-						memcpy(&snapSouth, &moSnap->real, sizeof(SMoverPos));
+						memcpy(&snapSouth, &objSnap->real, sizeof(SMoverPos));
 						snapSouth.y += tsWnd->mover.maxHeight + tsWnd->mover.marginVertical;
 						iMoverOverlayBitmap(tsWnd, bmp, tsWnd->mover.dragObject, &snapSouth, 1.0f);
 
 					} else if (tsWnd->mover.snap.snapDirection == _DIRECTION_EAST) {
 						// We need to draw this item one column right of where it is, because the triggering snap event was on the column to the left
-						memcpy(&snapSouth, &moSnap->real, sizeof(SMoverPos));
+						memcpy(&snapSouth, &objSnap->real, sizeof(SMoverPos));
 						snapSouth.x += tsWnd->mover.maxWidth + tsWnd->mover.marginHorizontal;
 						iMoverOverlayBitmap(tsWnd, bmp, tsWnd->mover.dragObject, &snapSouth, 1.0f);
 
 					} else {
 						// Draw it at its normal location
-						iMoverOverlayBitmap(tsWnd, bmp, tsWnd->mover.dragObject, &moSnap->real, 1.0f);
+						iMoverOverlayBitmap(tsWnd, bmp, tsWnd->mover.dragObject, &objSnap->real, 1.0f);
 					}
 				}
 
 
 				// If need be, draw the snap to rectangles
 				if (gnDrawSnaps == 1)
-					iMoverDrawSnaps(tsWnd, bmp, moSnap);
+					iMoverDrawSnaps(tsWnd, bmp, objSnap);
 			}
 		}
 	}
