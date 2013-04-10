@@ -185,6 +185,12 @@ struct SMoverObj
 	int				eventDragDrop;							// Responds to drag drop events (dropped in a droppable area)
 	int				eventHover;								// Responds to hover events
 
+	// Original data for whatever created this object
+	int				ox;										// Original upper-left x coordinate
+	int				oy;										// Original upper-left y coordinate
+	char*			ofile;									// Original file loaded from
+	int				oobjectId;								// Original object taken from inner-rect
+
 	// Settings for the object
 	int				col;									// Column position
 	int				row;									// Row position

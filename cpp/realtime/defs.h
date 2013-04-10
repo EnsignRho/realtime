@@ -72,7 +72,7 @@
 
 	// For mover functions
 	REALTIME_API void		realtime_mover_setup						(int tnHandle, int tnMarginVertical, int tnMarginHorizontal);
-	REALTIME_API int		realtime_mover_create_object_with_text		(int tnHandle, int tnWidth, int tnHeight, char* tcText, int tnTextLength, int tnBackRgb, int tnForeRgb, float tfAlpha, char* tcFontName, int tnFontSize, int tnBold, int tnItaclics, int tnUnderline, int tnBorderRgb, int tnBorderThickness);
+	REALTIME_API int		realtime_mover_create_object_with_text		(int tnHandle, int tnWidth, int tnHeight, char* tcText, int tnTextLength, int tnBackRgb, int tnForeRgb, float tfAlpha, char* tcFontName, int tnFontSize, int tnBold, int tnItalics, int tnUnderline, int tnBorderRgb, int tnBorderThickness);
 	REALTIME_API int		realtime_mover_acquire_object_from_rect		(int tnHandle, int tnHwndParent, int tnUlX, int tnUlY, int tnLrX, int tnLrY);
 	REALTIME_API int		realtime_mover_acquire_from_file			(int tnHandle, char* tcBmp24Name, int tnBmp24NameLength);
 	REALTIME_API int		realtime_mover_acquire_inner_rect			(int tnHandle, int tnObjectId, int tnUlX, int tnUlY, int tnLrX, int tnLrY);
@@ -80,7 +80,8 @@
 	REALTIME_API int		realtime_mover_set_visible					(int tnHandle, int tnObjectId, int tnVisible);
 	REALTIME_API int		realtime_mover_set_disposition_object		(int tnHandle, int tnObjectId, int tnDispositionObjectId, int tnDisposition);
 	REALTIME_API int		realtime_mover_set_event_mask				(int tnHandle, int tnObjectId, int tnClick, int tnRightClick, int tnMouseMove, int tnMouseEnter, int tnMouseLeave, int tnDragStart, int tnDragMove, int tnDragAbort, int tnDragDrop, int tnHover);
-	REALTIME_API int		realtime_mover_overlay_object				(int tnhandle, int tnObjectId, int tnOverlayObjectId, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask);
+	REALTIME_API int		realtime_mover_overlay_object				(int tnHandle, int tnObjectId, int tnOverlayObjectId, int tnX, int tnY, int tnOverlayMethod, float tfAlp, int tnRgbMask);
+	REALTIME_API int		realtime_mover_reacquire					(int tnHandle, int tnObjectId);
 	REALTIME_API int		realtime_mover_delete_object				(int tnHandle, int tnObjectId);
 	REALTIME_API int		realtime_mover_setup_object					(int tnHandle, int tnObjectId, int tnCol, int tnRow, int tnDraggable, int tnAcceptsDrops, int tnCopiesOnDrop/*if no, moves on drop*/, int tnCallbackCode);
 	REALTIME_API int		realtime_mover_recompute					(int tnHandle);
@@ -132,6 +133,7 @@
 	SWindow*				iLocateWindowByParentHwnd					(HWND hwndParent);
 	void					iAppendGraphDataPoint						(SWindow* tsWnd, float tfRangeUpper, float tfRangeLower, float tfFloatDataPoint);
 	bool					iCopyStringIfDifferent						(char** tcDst, char* tcSrc);
+	char*					iDuplicateString							(char* tcSrc, int tnSrcLength, bool tlNullTerminate);
 	void					iUpdateFont									(SWindow* tsWnd);
 	void					iGradient4FillOrBitmapOverlay				(SWindow* tsWnd, SBitmap* bmp2, SBitmap* bmp3);
 	void					iGradient4VerticalLine						(SWindow* tsWnd, SBitmap* bmp, int tnX, float tfRTop, float tfGTop, float tfBTop, float tfRBot, float tfGBot, float tfBBot);
@@ -154,6 +156,9 @@
 	int						iComputeActualWidth							(BITMAPINFOHEADER* tbi);
 	void					iStoreFloat									(char* tcDest16, float tfValue);
 	void					iStoreInt									(char* tcDest16, int tnValue);
+	void					iPopulateEmpty24BitBitmapStructure			(SBitmap* bmp, int tnWidth, int tnHeight);
+	void					iFillRect									(SBitmap* bmp, int tnBackRgb);
+	void					iOverlayBitmapViaColorizingAlphaBlend		(SBitmap* bmpDst, SBitmap* bmpSrc, int tnBackRgb, int tnForeRgb, float tfAlpha);
 
 	void					iRender										(SWindow* tsWnd);
 	DWORD WINAPI			buildGaugeWorkerThreadProc					(LPVOID lpParameter);

@@ -144,17 +144,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			//////////
 			// Create a DIB section of the appropriate size
 			//////
-				memset(&wnd->bmpMain.bmi, 0, sizeof(wnd->bmpMain.bmi));
-				wnd->bmpMain.bmi.bmiHeader.biSize				= sizeof(wnd->bmpMain.bmi.bmiHeader);
-				wnd->bmpMain.bmi.bmiHeader.biWidth				= tnWidth;
-				wnd->bmpMain.bmi.bmiHeader.biHeight			= tnHeight;
-				wnd->bmpMain.bmi.bmiHeader.biCompression		= 0;
-				wnd->bmpMain.bmi.bmiHeader.biPlanes			= 1;
-				wnd->bmpMain.bmi.bmiHeader.biBitCount			= 24;
-				wnd->bmpMain.bmi.bmiHeader.biXPelsPerMeter		= 3270;
-				wnd->bmpMain.bmi.bmiHeader.biYPelsPerMeter		= 3270;
-				// Compute the actual width
-				wnd->bmpMain.actualWidth						= iComputeActualWidth(&wnd->bmpMain.bmi.bmiHeader);
+				iPopulateEmpty24BitBitmapStructure(&wnd->bmpMain, tnWidth, tnHeight);
 				wnd->bmpMain.bmi.bmiHeader.biSizeImage			= wnd->bmpMain.actualWidth * tnHeight;
 				wnd->bmpMain.hbmp = CreateDIBSection(wnd->hdc1, &wnd->bmpMain.bmi, DIB_RGB_COLORS, (void**)&wnd->bmpMain.bits, NULL, 0);
 
@@ -167,18 +157,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					//////////
 					// Create a DIB section of the appropriate size
 					//////
-						memset(&wnd->bmpBackground.bmi, 0, sizeof(wnd->bmpBackground.bmi));
-						wnd->bmpBackground.bmi.bmiHeader.biSize				= sizeof(wnd->bmpBackground.bmi.bmiHeader);
-						wnd->bmpBackground.bmi.bmiHeader.biWidth				= tnWidth;
-						wnd->bmpBackground.bmi.bmiHeader.biHeight			= tnHeight;
-						wnd->bmpBackground.bmi.bmiHeader.biCompression		= 0;
-						wnd->bmpBackground.bmi.bmiHeader.biPlanes			= 1;
-						wnd->bmpBackground.bmi.bmiHeader.biBitCount			= 24;
-						wnd->bmpBackground.bmi.bmiHeader.biXPelsPerMeter		= 3270;
-						wnd->bmpBackground.bmi.bmiHeader.biYPelsPerMeter		= 3270;
-						// Compute the actual width
-						wnd->bmpBackground.actualWidth						= iComputeActualWidth(&wnd->bmpBackground.bmi.bmiHeader);
-						wnd->bmpBackground.bmi.bmiHeader.biSizeImage			= wnd->bmpBackground.actualWidth * tnHeight;
+						iPopulateEmpty24BitBitmapStructure(&wnd->bmpBackground, tnWidth, tnHeight);
+						wnd->bmpBackground.bmi.bmiHeader.biSizeImage		= wnd->bmpBackground.actualWidth * tnHeight;
 						wnd->bmpBackground.hbmp = CreateDIBSection(wnd->hdc1, &wnd->bmpBackground.bmi, DIB_RGB_COLORS, (void**)&wnd->bmpBackground.bits, NULL, 0);
 
 					// Put the bitmap into the dc3
@@ -614,10 +594,14 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 
 
-	REALTIME_API int realtime_mover_create_object_with_text(int tnHandle, int tnWidth, int tnHeight, char* tcText, int tnTextLength, int tnBackRgb, int tnForeRgb, float tfAlpha, char* tcFontName, int tnFontSize, int tnBold, int tnItaclics, int tnUnderline, int tnBorderRgb, int tnBorderThickness)
+	REALTIME_API int realtime_mover_create_object_with_text(int tnHandle, int tnWidth, int tnHeight, char* tcText, int tnTextLength, int tnBackRgb, int tnForeRgb, float tfAlpha, char* tcFontName, int tnFontSize, int tnBold, int tnItalics, int tnUnderline, int tnBorderRgb, int tnBorderThickness)
 	{
+		int			lnI, lnHeight, lnUlX, lnLrX, lnUlY, lnLrY;
 		SWindow*	wnd;
 		SMoverObj*	objNew;
+		SBitmap		bmp;
+		HFONT		lhfont1, lhfont2;
+		RECT		lrc, lrc2;
 
 
 		// Are we in test mode?
@@ -632,32 +616,78 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			objNew = iMoverAppendNewObject(wnd);
 			if (objNew)
 			{
-				// Create a DIB section of the appropriate size
-				memset(&objNew->bmp.bmi, 0, sizeof(objNew->bmp.bmi));
-				objNew->bmp.bmi.bmiHeader.biSize			= sizeof(objNew->bmp.bmi.bmiHeader);
-				objNew->bmp.bmi.bmiHeader.biWidth			= tnWidth;
-				objNew->bmp.bmi.bmiHeader.biHeight			= tnHeight;
-				objNew->bmp.bmi.bmiHeader.biCompression		= 0;
-				objNew->bmp.bmi.bmiHeader.biPlanes			= 1;
-				objNew->bmp.bmi.bmiHeader.biBitCount		= 24;
-				objNew->bmp.bmi.bmiHeader.biXPelsPerMeter	= 3270;
-				objNew->bmp.bmi.bmiHeader.biYPelsPerMeter	= 3270;
-				// Compute the actual width
-				objNew->bmp.actualWidth						= iComputeActualWidth(&objNew->bmp.bmi.bmiHeader);
-				objNew->bmp.bmi.bmiHeader.biSizeImage		= objNew->bmp.actualWidth * tnHeight;
-				objNew->bmp.hdc		= CreateCompatibleDC(wnd->hdc1);
-				objNew->bmp.hbmp	= CreateDIBSection(objNew->bmp.hdc, &objNew->bmp.bmi, DIB_RGB_COLORS, (void**)&objNew->bmp.bits, NULL, 0);
+				// Indicate that this object was not actually acquired from something graphical, but was created
+				objNew->ox									= -1;
+				objNew->oy									= -1;
+				objNew->ofile								= NULL;
+				objNew->oobjectId							= -1;
 
-				// Put the bitmap into the dc
+				// Create a DIB section of the appropriate size
+				iPopulateEmpty24BitBitmapStructure(&objNew->bmp, tnWidth, tnHeight);
+				objNew->bmp.bmi.bmiHeader.biSizeImage		= objNew->bmp.actualWidth * tnHeight;
+				objNew->bmp.hdc								= CreateCompatibleDC(wnd->hdc1);
+				objNew->bmp.hbmp							= CreateDIBSection(objNew->bmp.hdc, &objNew->bmp.bmi, DIB_RGB_COLORS, (void**)&objNew->bmp.bits, NULL, 0);
 				SelectObject(objNew->bmp.hdc, objNew->bmp.hbmp);
 
-				// Create the image based on what they've asked for
-// 				tnBackRgb
-// 				tnBorderRgb
-// 				tnBorderThickness
-// 				int tnForeRgb
-// 				float tfAlpha
-// 				char* tcFontName, int tnFontSize, int tnBold, int tnItaclics, int tnUnderline
+				// Create a temporary sister
+				iPopulateEmpty24BitBitmapStructure(&bmp, tnWidth, tnHeight);
+				bmp.bmi.bmiHeader.biSizeImage		= bmp.actualWidth * tnHeight;
+				bmp.hdc								= CreateCompatibleDC(wnd->hdc1);
+				bmp.hbmp							= CreateDIBSection(bmp.hdc, &bmp.bmi, DIB_RGB_COLORS, (void**)&bmp.bits, NULL, 0);
+				SelectObject(bmp.hdc, bmp.hbmp);
+
+				// Create the font
+				lnHeight	= -MulDiv(tnFontSize, GetDeviceCaps(bmp.hdc, LOGPIXELSY), 72);
+				lhfont1		= CreateFontA(lnHeight, 0, 0, 0, ((tnBold != 0) ? FW_BOLD : FW_NORMAL), (tnItalics != 0), (tnUnderline != 0), false, ANSI_CHARSET, 0, 0, 0, 0, tcFontName);
+				lhfont2		= (HFONT)SelectObject(bmp.hdc, lhfont1);
+
+				// Find out how big the text will be with the indicated font
+				DrawTextA(bmp.hdc, tcText, tnTextLength, &lrc, DT_CALCRECT);
+
+				// Adjust the rectangle based on the graphics size to fit in our rectangle
+				lrc2.left	= (tnWidth / 2) - ((lrc.right - lrc.left) / 2);
+				lrc2.top	= (tnHeight / 2) - ((lrc.bottom - lrc.top) / 2);
+				lrc2.right	= lrc2.left + (lrc.right - lrc.left);
+				lrc2.bottom	= lrc2.top + (lrc.bottom - lrc.top);
+
+				// Make sure it's within boundaries
+				if (lrc2.left < 0)				lrc2.left = 0;
+				if (lrc2.top < 0)				lrc2.top = 0;
+				if (lrc2.right > tnWidth)		lrc2.right = tnWidth;
+				if (lrc2.bottom > tnHeight)		lrc2.bottom = tnHeight;
+
+				// Actually render the text in black and white onto the sister bitmap
+				DrawTextA(bmp.hdc, tcText, tnTextLength, &lrc2, DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS);
+
+				// Put the original font back in, and delete our font handle
+				SelectObject(bmp.hdc, lhfont2);
+				DeleteObject((HGDIOBJ)lhfont1);
+
+				// Overlay the sister bitmap atop the original bitmap giving it the appropriate alpha channel consideration
+				iFillRect(&objNew->bmp, tnBackRgb);
+				iOverlayBitmapViaColorizingAlphaBlend(&objNew->bmp, &bmp, tnBackRgb, tnForeRgb, tfAlpha);
+
+				// Put a border around it
+				lnUlX	= 0;
+				lnUlY	= 0;
+				lnLrX	= tnWidth - 1;
+				lnLrY	= tnHeight - 1;
+				for (lnI = 0; lnI < tnBorderThickness && lnUlX < lnLrX && lnUlY < lnLrY; lnI++)
+				{
+					// Top, bottom, right, left
+					iDrawLineHorizontal(NULL, &objNew->bmp, lnUlX, lnLrX, lnUlY, tnBorderRgb);
+					iDrawLineHorizontal(NULL, &objNew->bmp, lnUlX, lnLrX, lnLrY, tnBorderRgb);
+					iDrawLineVertical(NULL, &objNew->bmp, lnLrX, lnUlY, lnLrY, tnBorderRgb);
+					iDrawLineVertical(NULL, &objNew->bmp, lnUlX, lnUlY, lnLrY, tnBorderRgb);
+
+					// Move everything in one
+					++lnUlX;
+					++lnUlY;
+					--lnLrX;
+					--lnLrY;
+				}
+
+				// Delete the sister bitmap
 
 // 				// Write it out to a file for examination by Rick, the developer, who is unsure sometimes of his own abilities, be they though gifts from God ... it is Rick to which he considers the possibility of failure, and not of God. :-)
 // 				BITMAPFILEHEADER bfh;
@@ -703,21 +733,17 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			objNew = iMoverAppendNewObject(wnd);
 			if (objNew)
 			{
+				// Store the original coordinates
+				objNew->ox									= tnUlX;
+				objNew->oy									= tnUlY;
+				objNew->ofile								= NULL;
+				objNew->oobjectId							= -1;
+
 				// Create a DIB section of the appropriate size
-				memset(&objNew->bmp.bmi, 0, sizeof(objNew->bmp.bmi));
-				objNew->bmp.bmi.bmiHeader.biSize			= sizeof(objNew->bmp.bmi.bmiHeader);
-				objNew->bmp.bmi.bmiHeader.biWidth			= tnLrX - tnUlX;
-				objNew->bmp.bmi.bmiHeader.biHeight			= tnLrY - tnUlY;
-				objNew->bmp.bmi.bmiHeader.biCompression		= 0;
-				objNew->bmp.bmi.bmiHeader.biPlanes			= 1;
-				objNew->bmp.bmi.bmiHeader.biBitCount		= 24;
-				objNew->bmp.bmi.bmiHeader.biXPelsPerMeter	= 3270;
-				objNew->bmp.bmi.bmiHeader.biYPelsPerMeter	= 3270;
-				// Compute the actual width
-				objNew->bmp.actualWidth						= iComputeActualWidth(&objNew->bmp.bmi.bmiHeader);
+				iPopulateEmpty24BitBitmapStructure(&objNew->bmp, tnLrX - tnUlX, tnLrY - tnUlY);
 				objNew->bmp.bmi.bmiHeader.biSizeImage		= objNew->bmp.actualWidth * (tnLrY - tnUlY);
-				objNew->bmp.hdc		= CreateCompatibleDC(wnd->hdc1);
-				objNew->bmp.hbmp	= CreateDIBSection(objNew->bmp.hdc, &objNew->bmp.bmi, DIB_RGB_COLORS, (void**)&objNew->bmp.bits, NULL, 0);
+				objNew->bmp.hdc								= CreateCompatibleDC(wnd->hdc1);
+				objNew->bmp.hbmp							= CreateDIBSection(objNew->bmp.hdc, &objNew->bmp.bmi, DIB_RGB_COLORS, (void**)&objNew->bmp.bits, NULL, 0);
 
 				// Put the bitmap into the dc
 				SelectObject(objNew->bmp.hdc, objNew->bmp.hbmp);
@@ -799,6 +825,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 							objNew = iMoverAppendNewObject(wnd);
 							if (objNew)
 							{
+								// Indicate it was not originally acquired
+								objNew->ox									= -1;
+								objNew->oy									= -1;
+								objNew->ofile								= iDuplicateString(lcFilename, strlen(lcFilename), true);
+								objNew->oobjectId							= -1;
+
 								// Copy the loaded data over to the new object
 								memcpy(&objNew->bmp.bmi.bmiHeader, &lbi, min(sizeof(lbi), sizeof(objNew->bmp.bmi.bmiHeader)));
 								objNew->bmp.bmi.bmiHeader.biSize = sizeof(objNew->bmp.bmi.bmiHeader);
@@ -872,6 +904,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 					// Extract the indicated portion
 					iExtractBitmap(&objNew->bmp, &obj->bmp, wnd->hdc1, tnUlX, tnUlY, tnLrX, tnLrY);
+
+					// Indicate that this object was not actually acquired from something raw
+					objNew->ox			= tnUlX;
+					objNew->oy			= tnUlY;
+					objNew->ofile		= NULL;
+					objNew->oobjectId	= tnObjectId;
 
 					// All done!
 					lnResult = objNew->objectId;
@@ -1095,9 +1133,39 @@ REALTIME_API int realtime_mover_overlay_object(int tnhandle, int tnObjectId, int
 
 
 
-REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
+REALTIME_API int realtime_mover_reacquire(int tnHandle, int tnObjectId)
 {
 	SWindow*	wnd;
+	SMoverObj*	obj;
+
+
+	// Are we in test mode?
+	if (glTestMode)
+		return 0;
+
+	// Grab our window
+	wnd = iLocateWindow(tnHandle);
+	if (wnd)
+	{
+		obj = iMoverLocateObject(wnd, tnObjectId);
+		if (obj)
+		{
+			// Do the physical capture of the bitmap data there
+			BitBlt(obj->bmp.hdc, 0, 0, obj->bmp.bmi.bmiHeader.biWidth, obj->bmp.bmi.bmiHeader.biHeight, GetDC((HWND)wnd->hwndParent), obj->ox, obj->oy, SRCCOPY);
+		}
+	}
+
+	// Failure
+	return(0);
+
+}
+
+
+
+
+REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
+{
+	SWindow* wnd;
 	
 
 	// Are we in test mode?
@@ -3175,19 +3243,46 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			}
 			//else this is the first entry
 
-
-			// Create room for the new
-			*tcDst = (char*)malloc(strlen(tcSrc) + 1);
-
-			// If we created the memory block, copy the string
-			if (*tcDst)
-				memcpy(*tcDst, tcSrc, strlen(tcSrc) + 1);
+			// Copy our string
+			*tcDst = iDuplicateString(tcSrc, strlen(tcSrc), true);
 
 			// We updated
 			return(true);
 		}
 		// We did not have enough to update
 		return(false);
+	}
+
+
+
+
+//////////
+//
+// Called to duplicate the string
+//
+//////
+	char* iDuplicateString(char* tcSrc, int tnSrcLength, bool tlNullTerminate)
+	{
+		char* ldata;
+
+
+		// Make sure our environment is sane
+		ldata = NULL;
+		if (tcSrc && tnSrcLength > 0)
+		{
+			ldata = (char*)malloc(tnSrcLength + ((tlNullTerminate) ? 1 : 0));
+			if (ldata)
+			{
+				// Copy the raw data
+				memcpy(ldata, tcSrc, tnSrcLength);
+
+				// Should it be null-terminated?
+				if (tlNullTerminate)
+					ldata[tnSrcLength] = 0;		// Yes
+			}
+		}
+		// Indicate our status
+		return(ldata);
 	}
 
 
@@ -4133,6 +4228,131 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		{
 			memset(tcDest16, 32, 16);
 			sprintf_s(tcDest16, 16, "%08u", tnValue);
+		}
+	}
+
+
+
+
+//////////
+//
+// Called to create an empty 24-bit bitmap
+//
+//////
+	void iPopulateEmpty24BitBitmapStructure(SBitmap* bmp, int tnWidth, int tnHeight)
+	{
+		memset(&bmp->bmi, 0, sizeof(bmp->bmi));
+		bmp->bmi.bmiHeader.biSize			= sizeof(bmp->bmi.bmiHeader);
+		bmp->bmi.bmiHeader.biWidth			= tnWidth;
+		bmp->bmi.bmiHeader.biHeight			= tnHeight;
+		bmp->bmi.bmiHeader.biCompression	= 0;
+		bmp->bmi.bmiHeader.biPlanes			= 1;
+		bmp->bmi.bmiHeader.biBitCount		= 24;
+		bmp->bmi.bmiHeader.biXPelsPerMeter	= 3270;
+		bmp->bmi.bmiHeader.biYPelsPerMeter	= 3270;
+		bmp->actualWidth					= iComputeActualWidth(&bmp->bmi.bmiHeader);
+	}
+
+
+
+
+//////////
+//
+// Called to fill in the indicated rectangle with a solid color
+//
+//////
+	void iFillRect(SBitmap* bmp, int tnBackRgb)
+	{
+		int		lnX, lnY;
+		char	lnRed, lnGrn, lnBlu;
+		SRGB*	lrgb;
+
+
+		// Make sure our environment is sane
+		if (bmp && tnBackRgb != -1)
+		{
+			// Grab our colors
+			lnRed = red(tnBackRgb);
+			lnGrn = grn(tnBackRgb);
+			lnBlu = blu(tnBackRgb);
+
+			// Iterate for every row
+			for (lnY = 0; lnY < bmp->bmi.bmiHeader.biHeight; lnY++)
+			{
+				// Compute the pointer for this row
+				lrgb = (SRGB*)(bmp->bits + ((bmp->bmi.bmiHeader.biHeight - lnY - 1) * bmp->actualWidth));
+				for (lnX = 0; lnX < bmp->bmi.bmiHeader.biWidth; lnX++)
+				{
+					lrgb->red	= lnRed;
+					lrgb->grn	= lnGrn;
+					lrgb->blu	= lnBlu;
+				}
+			}
+		}
+	}
+
+
+
+
+//////////
+//
+// Called to overlay the indicated bitmap atop the other one using its black and white pixelation
+// as color data to apply to the backRgb and foreRgb based on alpha settings.
+//
+//////
+	void iOverlayBitmapViaColorizingAlphaBlend(SBitmap* bmpDst, SBitmap* bmpSrc, int tnBackRgb, int tnForeRgb, float tfAlpha)
+	{
+		int		lnX, lnY;
+		float	lfRedBack, lfGrnBack, lfBluBack;
+		float	lfRedFore, lfGrnFore, lfBluFore;
+		float	lfRedThis, lfGrnThis, lfBluThis;
+		float	malp, lalp1, lmalp1;
+		SRGB*	lrgbs;
+		SRGB*	lrgbd;
+
+
+		// Make sure our environment is sane
+		if (bmpDst && bmpSrc)
+		{
+			// Grab our colors
+			// Background
+			lfRedBack = (float)red(tnBackRgb);
+			lfGrnBack = (float)grn(tnBackRgb);
+			lfBluBack = (float)blu(tnBackRgb);
+			// Foreground
+			lfRedFore = (float)red(tnForeRgb);
+			lfGrnFore = (float)grn(tnForeRgb);
+			lfBluFore = (float)blu(tnForeRgb);
+
+			// Compute our malp
+			malp = 1.0f - tfAlpha;
+
+			// Iterate for every row
+			for (lnY = 0; lnY < bmpSrc->bmi.bmiHeader.biHeight; lnY++)
+			{
+				// Compute the pointer for this row
+				lrgbs = (SRGB*)(bmpSrc->bits + ((bmpSrc->bmi.bmiHeader.biHeight - lnY - 1) * bmpSrc->actualWidth));
+				lrgbd = (SRGB*)(bmpDst->bits + ((bmpDst->bmi.bmiHeader.biHeight - lnY - 1) * bmpDst->actualWidth));
+				for (lnX = 0; lnX < bmpSrc->bmi.bmiHeader.biWidth; lnX++)
+				{
+					// We go through two alpha blendings here.
+					// In the first, we derive the pixel colorization for red, grn, and blu for this one pixel based on the lrgbs color information
+					lalp1	= ((0.35f)*(float)lrgbs->red) + ((0.54f)*(float)lrgbs->grn) + ((0.11f)*(float)lrgbs->blu);
+					lmalp1	= 1.0f - lalp1;
+					// Right now, we have our percentages for this pixel
+
+					// Create this pixel's actual color
+					lfRedThis	= (lfRedBack*lmalp1) + (lfRedFore*lalp1);
+					lfGrnThis	= (lfGrnBack*lmalp1) + (lfGrnFore*lalp1);
+					lfBluThis	= (lfBluBack*lmalp1) + (lfBluFore*lalp1);
+					// Right now, we have our colors for this pixel
+
+					// In the second, we put that color atop the existing color data using the alpha settings
+					lrgbd->red	= (unsigned char)((((float)lrgbd->red)*malp) + (lfRedThis*tfAlpha));
+					lrgbd->grn	= (unsigned char)((((float)lrgbd->grn)*malp) + (lfGrnThis*tfAlpha));
+					lrgbd->blu	= (unsigned char)((((float)lrgbd->blu)*malp) + (lfBluThis*tfAlpha));
+				}
+			}
 		}
 	}
 
