@@ -145,7 +145,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			// Create a DIB section of the appropriate size
 			//////
 				iPopulateEmpty24BitBitmapStructure(&wnd->bmpMain, tnWidth, tnHeight);
-				wnd->bmpMain.bmi.bmiHeader.biSizeImage			= wnd->bmpMain.actualWidth * tnHeight;
 				wnd->bmpMain.hbmp = CreateDIBSection(wnd->hdc1, &wnd->bmpMain.bmi, DIB_RGB_COLORS, (void**)&wnd->bmpMain.bits, NULL, 0);
 
 				// Put the bitmap into the dc2
@@ -158,7 +157,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					// Create a DIB section of the appropriate size
 					//////
 						iPopulateEmpty24BitBitmapStructure(&wnd->bmpBackground, tnWidth, tnHeight);
-						wnd->bmpBackground.bmi.bmiHeader.biSizeImage		= wnd->bmpBackground.actualWidth * tnHeight;
 						wnd->bmpBackground.hbmp = CreateDIBSection(wnd->hdc1, &wnd->bmpBackground.bmi, DIB_RGB_COLORS, (void**)&wnd->bmpBackground.bits, NULL, 0);
 
 					// Put the bitmap into the dc3
@@ -624,14 +622,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 				// Create a DIB section of the appropriate size
 				iPopulateEmpty24BitBitmapStructure(&objNew->bmp, tnWidth, tnHeight);
-				objNew->bmp.bmi.bmiHeader.biSizeImage		= objNew->bmp.actualWidth * tnHeight;
 				objNew->bmp.hdc								= CreateCompatibleDC(wnd->hdc1);
 				objNew->bmp.hbmp							= CreateDIBSection(objNew->bmp.hdc, &objNew->bmp.bmi, DIB_RGB_COLORS, (void**)&objNew->bmp.bits, NULL, 0);
 				SelectObject(objNew->bmp.hdc, objNew->bmp.hbmp);
 
 				// Create a temporary sister
 				iPopulateEmpty24BitBitmapStructure(&bmp, tnWidth, tnHeight);
-				bmp.bmi.bmiHeader.biSizeImage		= bmp.actualWidth * tnHeight;
 				bmp.hdc								= CreateCompatibleDC(wnd->hdc1);
 				bmp.hbmp							= CreateDIBSection(bmp.hdc, &bmp.bmi, DIB_RGB_COLORS, (void**)&bmp.bits, NULL, 0);
 				SelectObject(bmp.hdc, bmp.hbmp);
@@ -642,6 +638,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 				lhfont2		= (HFONT)SelectObject(bmp.hdc, lhfont1);
 
 				// Find out how big the text will be with the indicated font
+				SetRect(&lrc, 0, 0, tnWidth-1, tnHeight-1);
 				DrawTextA(bmp.hdc, tcText, tnTextLength, &lrc, DT_CALCRECT);
 
 				// Adjust the rectangle based on the graphics size to fit in our rectangle
@@ -657,6 +654,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 				if (lrc2.bottom > tnHeight)		lrc2.bottom = tnHeight;
 
 				// Actually render the text in black and white onto the sister bitmap
+				iFillRect(&bmp, rgb(0,0,0));
+				SetTextColor(bmp.hdc, RGB(255,255,255));
+				SetBkColor(bmp.hdc, RGB(0,0,0));
+				SetBkMode(bmp.hdc, TRANSPARENT);
 				DrawTextA(bmp.hdc, tcText, tnTextLength, &lrc2, DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS);
 
 				// Put the original font back in, and delete our font handle
@@ -665,6 +666,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 				// Overlay the sister bitmap atop the original bitmap giving it the appropriate alpha channel consideration
 				iFillRect(&objNew->bmp, tnBackRgb);
+				//iOverlayBitmapViaMethod(&objNew->bmp, &bmp, 0, 0, _METHOD_OPAQUE, 0.0, -1);
 				iOverlayBitmapViaColorizingAlphaBlend(&objNew->bmp, &bmp, tnBackRgb, tnForeRgb, tfAlpha);
 
 				// Put a border around it
@@ -4251,6 +4253,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		bmp->bmi.bmiHeader.biXPelsPerMeter	= 3270;
 		bmp->bmi.bmiHeader.biYPelsPerMeter	= 3270;
 		bmp->actualWidth					= iComputeActualWidth(&bmp->bmi.bmiHeader);
+		bmp->bmi.bmiHeader.biSizeImage		= bmp->actualWidth * tnHeight;
 	}
 
 
@@ -4283,9 +4286,13 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				lrgb = (SRGB*)(bmp->bits + ((bmp->bmi.bmiHeader.biHeight - lnY - 1) * bmp->actualWidth));
 				for (lnX = 0; lnX < bmp->bmi.bmiHeader.biWidth; lnX++)
 				{
+					// Set this pixel
 					lrgb->red	= lnRed;
 					lrgb->grn	= lnGrn;
 					lrgb->blu	= lnBlu;
+
+					// Move to next pixel
+					++lrgb;
 				}
 			}
 		}
@@ -4337,7 +4344,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				{
 					// We go through two alpha blendings here.
 					// In the first, we derive the pixel colorization for red, grn, and blu for this one pixel based on the lrgbs color information
-					lalp1	= ((0.35f)*(float)lrgbs->red) + ((0.54f)*(float)lrgbs->grn) + ((0.11f)*(float)lrgbs->blu);
+					lalp1	= (float)lrgbs->red / 255.0f;
 					lmalp1	= 1.0f - lalp1;
 					// Right now, we have our percentages for this pixel
 
@@ -4351,6 +4358,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 					lrgbd->red	= (unsigned char)((((float)lrgbd->red)*malp) + (lfRedThis*tfAlpha));
 					lrgbd->grn	= (unsigned char)((((float)lrgbd->grn)*malp) + (lfGrnThis*tfAlpha));
 					lrgbd->blu	= (unsigned char)((((float)lrgbd->blu)*malp) + (lfBluThis*tfAlpha));
+
+					// Move to next pixel
+					++lrgbs;
+					++lrgbd;
 				}
 			}
 		}
@@ -4514,8 +4525,8 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 	LRESULT CALLBACK realtimeWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		SWindow*	wnd;
-		RECT		lrc;
-		HDC			lhdc;
+//		RECT		lrc;
+//		HDC			lhdc;
 		
 
 		// If we are painting, paint our areas
@@ -4530,6 +4541,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 						iPaintWindow(wnd);
 						return(0);
 
+/*
 					case WM_NCACTIVATE:
 					case WM_NCPAINT:
 						DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -4539,6 +4551,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 						ReleaseDC(hwnd, lhdc);
 						return 0;
 						break;
+*/
 
 					case WM_ERASEBKGND:
 						// Ignore it
