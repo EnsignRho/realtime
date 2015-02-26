@@ -57,7 +57,7 @@
 	REALTIME_API void		realtime_test_mode							(int tnEnabled);
 
 	// For progress bar functions
-	REALTIME_API void		realtime_progressbar_setup					(int tnHandle, float tfRangeMin, float tfRange1, float tfRange2, float tfRangeMax, int tnColor1, int tnColor2, int tnColor3, int tnBorderColor, int tnNeedleColor, int tnShowBorder, int tnShowNeedle);
+	REALTIME_API void		realtime_progressbar_setup					(int tnHandle, float tfRangeMin, float tfRange1, float tfRange2, float tfRangeMax, int tnColor1, int tnColor2, int tnColor3, int tnBorderColor, int tnNeedleColor, int tnShowBorder, int tnShowNeedle, char* tcOrientation);
 	REALTIME_API void		realtime_progressbar_set_needle_position	(int tnHandle, float tfValue);
 	REALTIME_API void		realtime_progressbar_redraw					(int tnHandle);
 
@@ -98,6 +98,8 @@
 // Local/internal function prototype definitions
 //////
 	void					iPbarOverlay								(SWindow* tsWnd, SBitmap* bmp);
+	void					iiPbarOverlay_eastWest						(SWindow* tsWnd, SBitmap* bmp);
+	void					iiPbarOverlay_northSouth					(SWindow* tsWnd, SBitmap* bmp);
 	void					iPbarOverlayNeedle							(SWindow* tsWnd, SBitmap* bmp);
 
 	void					iGraphDrawBars								(SWindow* tsWnd, SBitmap* bmp);

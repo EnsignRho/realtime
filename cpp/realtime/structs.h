@@ -82,6 +82,7 @@ struct SPBar
 		int			nColor3;								// Color for part 3
 		int			nBorderColor;							// Border color
 		int			nNeedleColor;							// Needle color
+		int			nOrientation;							// _NORTH, _EAST, _SOUTH, or _WEST
 
 
 	//////////

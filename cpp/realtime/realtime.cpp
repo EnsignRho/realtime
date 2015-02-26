@@ -289,7 +289,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 // Called to setup a new progress bar.
 //
 //////
-	REALTIME_API void realtime_progressbar_setup(int tnHandle, float tfRangeMin, float tfRange1, float tfRange2, float tfRangeMax, int tnColor1, int tnColor2, int tnColor3, int tnBorderColor, int tnNeedleColor, int tnShowBorder, int tnShowNeedle)
+	REALTIME_API void realtime_progressbar_setup(int tnHandle, float tfRangeMin, float tfRange1, float tfRange2, float tfRangeMax, int tnColor1, int tnColor2, int tnColor3, int tnBorderColor, int tnNeedleColor, int tnShowBorder, int tnShowNeedle, char* tcOrientation)
 	{
 		SWindow*	wnd;
 
@@ -317,6 +317,30 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 			wnd->pbar.lShowBorder		= (tnShowBorder != 0);
 			wnd->pbar.lShowNeedle		= (tnShowNeedle != 0);
+
+			switch (tcOrientation[0])
+			{
+				case 'n':	// Vertical upward
+				case 'N':
+					wnd->pbar.nOrientation	= _DIRECTION_NORTH;
+					break;
+
+				default:
+				case 'e':	// Horizontal right
+				case 'E':
+					wnd->pbar.nOrientation	= _DIRECTION_EAST;
+					break;
+
+				case 's':	// Vertical downward
+				case 'S':
+					wnd->pbar.nOrientation	= _DIRECTION_SOUTH;
+					break;
+
+				case 'w':	// Horizontal left
+				case 'W':
+					wnd->pbar.nOrientation	= _DIRECTION_WEST;
+					break;
+			}
 		}
 	}
 
@@ -1498,8 +1522,21 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 	// |----part 1----|----part 2----|----part 3----|
 	void iPbarOverlay(SWindow* tsWnd, SBitmap* bmp)
 	{
-		int		lnX, lnTarget, lnMaxPixel, lnHeight, lnSeg1Pixels, lnSeg2Pixels, lnSeg3Pixels;
-		float	lfMin, lfMax, lfWidth, lfDelta, lfValue, lfSeg1, lfSeg2, lfSeg3;
+		if (tsWnd->pbar.nOrientation == _DIRECTION_EAST || tsWnd->pbar.nOrientation == _DIRECTION_WEST)
+		{
+			// East/west are horizontal
+			iiPbarOverlay_eastWest(tsWnd, bmp);
+
+		} else {
+			// North/south are vertical
+			iiPbarOverlay_northSouth(tsWnd, bmp);
+		}
+	}
+
+	void iiPbarOverlay_eastWest(SWindow* tsWnd, SBitmap* bmp)
+	{
+		int		lnX, lnTarget, lnMaxPixel, lnWidth, lnHeight, lnSeg1Pixels, lnSeg2Pixels, lnSeg3Pixels;
+		float	lfMin, lfMax, lfWidth, lfDelta, lfValue, lfSeg1, lfSeg2, lfSeg3, lfLow;
 
 
 		//////////
@@ -1512,8 +1549,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			lfSeg3			= (lfMax - tsWnd->pbar.fRange2) - lfMin;
 			lfValue			= max(min(tsWnd->pbar.fValue, lfMax), lfMin);
 			lfDelta			= (lfMax - lfMin);
+			lnWidth			= tsWnd->bmpMain.bmi.bmiHeader.biWidth;
 			lfWidth			= (float)tsWnd->bmpMain.bmi.bmiHeader.biWidth;
 			lnHeight		= tsWnd->bmpMain.bmi.bmiHeader.biHeight - 1;
+			lfLow			= 0.15f;
 		
 
 		//////////
@@ -1535,33 +1574,196 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		//////////
 		// Draw the min range
 		//////
-			// Draw the segment over from the left
-			for (lnX = 0; lnX < lnSeg1Pixels && lnX < lnMaxPixel; lnX++)
+			// Draw segment 1
+			for (lnX = 0; lnX < lnSeg1Pixels; lnX++)
 			{
 				// Vertical line
-				iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor1, 1.0f);
+				if (tsWnd->pbar.nOrientation == _DIRECTION_EAST)
+				{
+					// Going east
+					iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor1, ((lnX < lnMaxPixel) ? 1.0f : lfLow));
+
+				} else {
+					// Going west
+					iDrawLineVerticalAlpha(tsWnd, bmp, lnWidth - lnX, 0, lnHeight, tsWnd->pbar.nColor1, ((lnX < lnMaxPixel) ? 1.0f : lfLow));
+				}
 			}
 
 
 		//////////
 		// Draw the middle range
 		//////
-			// Draw the segment from where we are right
-			for (lnTarget = lnSeg1Pixels + lnSeg2Pixels; lnX < lnTarget && lnX < lnMaxPixel; lnX++)
+			// Draw segment 2
+			for (lnTarget = lnSeg1Pixels + lnSeg2Pixels; lnX < lnTarget; lnX++)
 			{
 				// Vertical line
-				iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor2, 1.0f);
+				if (tsWnd->pbar.nOrientation == _DIRECTION_EAST)
+				{
+					// Going east
+					iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor2, ((lnX < lnMaxPixel) ? 1.0f : lfLow));
+
+				} else {
+					// Going west
+					iDrawLineVerticalAlpha(tsWnd, bmp, lnWidth - lnX, 0, lnHeight, tsWnd->pbar.nColor2, ((lnX < lnMaxPixel) ? 1.0f : lfLow));
+				}
 			}
 
 
 		//////////
 		// Draw the max range
 		//////
-			// Draw the segment from where we are right
-			for (lnTarget = lnSeg1Pixels + lnSeg2Pixels + lnSeg3Pixels; lnX < lnTarget && lnX < lnMaxPixel; lnX++)
+			// Draw segment 3
+			for (lnTarget = lnSeg1Pixels + lnSeg2Pixels + lnSeg3Pixels; lnX < lnTarget; lnX++)
 			{
 				// Vertical line
-				iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor3, 1.0f);
+				if (tsWnd->pbar.nOrientation == _DIRECTION_EAST)
+				{
+					// Going east
+					iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor3, ((lnX < lnMaxPixel) ? 1.0f : lfLow));
+
+				} else {
+					// Going west
+					iDrawLineVerticalAlpha(tsWnd, bmp, lnWidth - lnX, 0, lnHeight, tsWnd->pbar.nColor3, ((lnX < lnMaxPixel) ? 1.0f : lfLow));
+				}
+			}
+
+
+		//////////
+		// Draw vertical bars at lnSeg1Pixels and lnSeg2Pixels
+		//////
+			if (tsWnd->pbar.nOrientation == _DIRECTION_EAST)
+			{
+				// Going east
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnSeg1Pixels - 1,				0, lnHeight, tsWnd->pbar.nBorderColor, lfLow);
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnSeg1Pixels,					0, lnHeight, tsWnd->pbar.nBorderColor, 0.80f);
+
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnSeg1Pixels     + lnSeg2Pixels,	0, lnHeight, tsWnd->pbar.nBorderColor, 0.80f);
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnSeg1Pixels + 1 + lnSeg2Pixels,	0, lnHeight, tsWnd->pbar.nBorderColor, lfLow);
+
+			} else {
+				// Going west
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnWidth - (lnSeg1Pixels - 1),				0, lnHeight, tsWnd->pbar.nBorderColor, lfLow);
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnWidth - (lnSeg1Pixels),					0, lnHeight, tsWnd->pbar.nBorderColor, 0.80f);
+
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnWidth - (lnSeg1Pixels     + lnSeg2Pixels),	0, lnHeight, tsWnd->pbar.nBorderColor, 0.80f);
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnWidth - (lnSeg1Pixels + 1 + lnSeg2Pixels),	0, lnHeight, tsWnd->pbar.nBorderColor, lfLow);
+			}
+	}
+
+	void iiPbarOverlay_northSouth(SWindow* tsWnd, SBitmap* bmp)
+	{
+		int		lnY, lnTarget, lnMaxPixel, lnWidth, lnHeight, lnSeg1Pixels, lnSeg2Pixels, lnSeg3Pixels;
+		float	lfMin, lfMax, lfWidth, lfDelta, lfValue, lfSeg1, lfSeg2, lfSeg3, lfLow;
+
+
+		//////////
+		// Make sure the values are sane
+		//////
+			lfMin			= min(tsWnd->pbar.fRangeMin, tsWnd->pbar.fRangeMax);
+			lfMax			= max(tsWnd->pbar.fRangeMin, tsWnd->pbar.fRangeMax);
+			lfSeg1			= tsWnd->pbar.fRange1 - lfMin;
+			lfSeg2			= (tsWnd->pbar.fRange2 - tsWnd->pbar.fRange1) - lfMin;
+			lfSeg3			= (lfMax - tsWnd->pbar.fRange2) - lfMin;
+			lfValue			= max(min(tsWnd->pbar.fValue, lfMax), lfMin);
+			lfDelta			= (lfMax - lfMin);
+			lnWidth			= tsWnd->bmpMain.bmi.bmiHeader.biWidth;
+			lfWidth			= (float)tsWnd->bmpMain.bmi.bmiHeader.biWidth;
+			lnHeight		= tsWnd->bmpMain.bmi.bmiHeader.biHeight - 1;
+			lfLow			= 0.15f;
+		
+
+		//////////
+		// Avoid division-by-zero errors
+		//////
+			if (lfDelta == 0.0f)
+				return;
+
+
+		//////////
+		// Determine how much of this will be colored
+		//////
+			lnMaxPixel		= (int)(lnHeight * ((lfValue - lfMin) / lfDelta));
+			lnSeg1Pixels	= (int)(lnHeight * (lfSeg1 / lfDelta));
+			lnSeg2Pixels	= (int)(lnHeight * (lfSeg2 / lfDelta));
+			lnSeg3Pixels	= (int)(lnHeight * (lfSeg3 / lfDelta));
+
+
+		//////////
+		// Draw the min range
+		//////
+			// Draw segment 1
+			for (lnY = 0; lnY < lnSeg1Pixels; lnY++)
+			{
+				// Horizontal line
+				if (tsWnd->pbar.nOrientation == _DIRECTION_SOUTH)
+				{
+					// Going South
+					iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnY, tsWnd->pbar.nColor1, ((lnY < lnMaxPixel) ? 1.0f : lfLow));
+
+				} else {
+					// Going north
+					iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnHeight - lnY, tsWnd->pbar.nColor1, ((lnY < lnMaxPixel) ? 1.0f : lfLow));
+				}
+			}
+
+
+		//////////
+		// Draw the middle range
+		//////
+			// Draw segment 2
+			for (lnTarget = lnSeg1Pixels + lnSeg2Pixels; lnY < lnTarget; lnY++)
+			{
+				// Horizontal line
+				if (tsWnd->pbar.nOrientation == _DIRECTION_SOUTH)
+				{
+					// Going south
+					iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnY, tsWnd->pbar.nColor2, ((lnY < lnMaxPixel) ? 1.0f : lfLow));
+
+				} else {
+					// Going north
+					iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnHeight - lnY, tsWnd->pbar.nColor2, ((lnY < lnMaxPixel) ? 1.0f : lfLow));
+				}
+			}
+
+
+		//////////
+		// Draw the max range
+		//////
+			// Draw segment 3
+			for (lnTarget = lnSeg1Pixels + lnSeg2Pixels + lnSeg3Pixels; lnY < lnTarget; lnY++)
+			{
+				// Horizontal line
+				if (tsWnd->pbar.nOrientation == _DIRECTION_SOUTH)
+				{
+					// Going south
+					iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnY, tsWnd->pbar.nColor3, ((lnY < lnMaxPixel) ? 1.0f : lfLow));
+
+				} else {
+					// Going north
+					iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnHeight - lnY, tsWnd->pbar.nColor3, ((lnY < lnMaxPixel) ? 1.0f : lfLow));
+				}
+			}
+
+
+		//////////
+		// Draw horizontal bars at lnSeg1Pixels and lnSeg2Pixels
+		//////
+			if (tsWnd->pbar.nOrientation == _DIRECTION_SOUTH)
+			{
+				// Going south
+				iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnSeg1Pixels - 1,								tsWnd->pbar.nBorderColor, lfLow);
+				iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnSeg1Pixels,									tsWnd->pbar.nBorderColor, 0.80f);
+
+				iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnSeg1Pixels     + lnSeg2Pixels,				tsWnd->pbar.nBorderColor, 0.80f);
+				iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnSeg1Pixels + 1 + lnSeg2Pixels,				tsWnd->pbar.nBorderColor, lfLow);
+
+			} else {
+				// Going north
+				iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnHeight - (lnSeg1Pixels - 1),					tsWnd->pbar.nBorderColor, lfLow);
+				iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnHeight - (lnSeg1Pixels),						tsWnd->pbar.nBorderColor, 0.80f);
+
+				iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnHeight - (lnSeg1Pixels     + lnSeg2Pixels),	tsWnd->pbar.nBorderColor, 0.80f);
+				iDrawLineHorizontalAlpha(tsWnd, bmp, 0, lnWidth, lnHeight - (lnSeg1Pixels + 1 + lnSeg2Pixels),	tsWnd->pbar.nBorderColor, lfLow);
 			}
 	}
 
@@ -1575,8 +1777,12 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 //////
 	void iPbarOverlayNeedle(SWindow* tsWnd, SBitmap* bmp)
 	{
-		int		lnX, lnY, lnSpan, lnNeedleCenterPixel, lnHeight;
-		float	lfMin, lfMax, lfWidth, lfDelta, lfValue;
+		int		lnX, lnY, lnSpan, lnNeedleCenterPixel, lnWidth, lnHeight;
+		float	lfMin, lfMax, lfWidth, lfHeight, lfDelta, lfValue, lfRed, lfGrn, lfBlu, lfRedInc, lfGrnInc, lfBluInc;
+		union {
+			int		_color;
+			SRGB	color;
+		};
 
 
 		//////////
@@ -1586,8 +1792,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			lfMax			= max(tsWnd->pbar.fRangeMin, tsWnd->pbar.fRangeMax);
 			lfValue			= max(min(tsWnd->pbar.fValue, lfMax), lfMin);
 			lfDelta			= (lfMax - lfMin);
-			lfWidth			= (float)tsWnd->bmpMain.bmi.bmiHeader.biWidth;
+			lnWidth			= tsWnd->bmpMain.bmi.bmiHeader.biWidth;
 			lnHeight		= tsWnd->bmpMain.bmi.bmiHeader.biHeight - 1;
+			lfWidth			= (float)tsWnd->bmpMain.bmi.bmiHeader.biWidth;
+			lfHeight		= (float)tsWnd->bmpMain.bmi.bmiHeader.biHeight;
 		
 
 		//////////
@@ -1598,19 +1806,70 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 
 		//////////
-		// Determine how much of this will be colored
+		// Compute our color deltas
 		//////
-			lnNeedleCenterPixel = (int)(lfWidth * ((lfValue - lfMin) / lfDelta));
+			_color		= tsWnd->pbar.nNeedleColor;
+			lfRed		= (float)color.red;
+			lfGrn		= (float)color.grn;
+			lfBlu		= (float)color.blu;
+			_color		= tsWnd->pbar.nBorderColor;
 
 
-		//////////
-		// Draw the needle
-		//////
-			for (lnX = lnNeedleCenterPixel, lnY = lnHeight / 3, lnSpan = 0; lnY < lnHeight; lnY++, lnSpan = min(lnSpan + 1, 5))
-			{
-				// Horizontal line
-				iDrawLineHorizontalAlpha(tsWnd, bmp, lnNeedleCenterPixel - lnSpan, lnNeedleCenterPixel + lnSpan, lnY, tsWnd->pbar.nNeedleColor, 1.0f);
-			}
+		if (tsWnd->pbar.nOrientation == _DIRECTION_WEST || tsWnd->pbar.nOrientation == _DIRECTION_EAST)
+		{
+			//////////
+			// Draw the needle vertically
+			//////
+				lfRedInc	= ((float)color.red - lfRed) / (float)lnHeight;
+				lfGrnInc	= ((float)color.grn - lfGrn) / (float)lnHeight;
+				lfBluInc	= ((float)color.blu - lfBlu) / (float)lnHeight;
+				lnNeedleCenterPixel = (int)(lfWidth * ((lfValue - lfMin) / lfDelta));
+				for (lnX = lnNeedleCenterPixel, lnY = lnHeight / 3, lnSpan = 0; lnY < lnHeight; lnY++, lnSpan = min(lnSpan + 1, 5), lfRed += lfRedInc, lfGrn += lfGrnInc, lfBlu += lfBluInc)
+				{
+					// Set the color
+					color.red = (u8)lfRed;
+					color.grn = (u8)lfGrn;
+					color.blu = (u8)lfBlu;
+
+					// Horizontal line (as it moves vertically, it draws the needle vertically)
+					if (tsWnd->pbar.nOrientation == _DIRECTION_EAST)
+					{
+						// Going east
+						iDrawLineHorizontalAlpha(tsWnd, bmp, lnNeedleCenterPixel - lnSpan, lnNeedleCenterPixel + lnSpan, lnY, _color, 1.0f);
+
+					} else {
+						// Going west
+						iDrawLineHorizontalAlpha(tsWnd, bmp, bmp->bmi.bmiHeader.biWidth - (lnNeedleCenterPixel + lnSpan), bmp->bmi.bmiHeader.biWidth - (lnNeedleCenterPixel - lnSpan), lnY, _color, 1.0f);
+					}
+				}
+
+		} else {
+			//////////
+			// Draw the needle horizontally
+			//////
+				lfRedInc	= ((float)color.red - lfRed) / (float)lnWidth;
+				lfGrnInc	= ((float)color.grn - lfGrn) / (float)lnWidth;
+				lfBluInc	= ((float)color.blu - lfBlu) / (float)lnWidth;
+				lnNeedleCenterPixel = (int)(lfHeight * ((lfValue - lfMin) / lfDelta));
+				for (lnY = lnNeedleCenterPixel, lnX = lnWidth * 2 / 3, lnSpan = 0; lnX > 0; lnX--, lnSpan = min(lnSpan + 1, 5), lfRed += lfRedInc, lfGrn += lfGrnInc, lfBlu += lfBluInc)
+				{
+					// Set the color
+					color.red = (u8)lfRed;
+					color.grn = (u8)lfGrn;
+					color.blu = (u8)lfBlu;
+
+					// Vertical line (as it moves horizontally, it draws the needle horizontally)
+					if (tsWnd->pbar.nOrientation == _DIRECTION_SOUTH)
+					{
+						// Going east
+						iDrawLineVerticalAlpha(tsWnd, bmp, lnX, lnNeedleCenterPixel - lnSpan, lnNeedleCenterPixel + lnSpan, _color, 1.0f);
+
+					} else {
+						// Going west
+						iDrawLineVerticalAlpha(tsWnd, bmp, lnX, bmp->bmi.bmiHeader.biHeight - (lnNeedleCenterPixel + lnSpan), bmp->bmi.bmiHeader.biHeight - (lnNeedleCenterPixel - lnSpan), _color, 1.0f);
+					}
+				}
+		}
 	}
 
 
@@ -4647,17 +4906,19 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 	{
 		if (tsWnd)
 		{
+			// Are we already busy?
 			if (!tsWnd->threadBusy)
 			{
-				// Indicate we're hammered
+				// Indicate we're now busy
 				tsWnd->threadBusy	= true;
 				tsWnd->threadCalls	= 0;
 
 				// Spawn the thread
-				     if (tsWnd->type == _TYPE_GRAPH)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGraphWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
-				else if (tsWnd->type == _TYPE_GAUGE)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGaugeWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
-				else if (tsWnd->type == _TYPE_MOVER)		tsWnd->threadHandle = CreateThread(NULL, 0, buildMoverWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
-				else if (tsWnd->type == _TYPE_PBAR)			tsWnd->threadHandle = CreateThread(NULL, 0, buildPbarWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
+				     if (tsWnd->type == _TYPE_GRAPH)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGraphWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_GAUGE)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGaugeWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_MOVER)		tsWnd->threadHandle = CreateThread(NULL, 0, buildMoverWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_PBAR)			tsWnd->threadHandle = CreateThread(NULL, 0, buildPbarWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
+				// Note:  Called thread will reset busy upon termination
 
 			} else {
 				// Indicate we've had additional calls while previously rendering
