@@ -286,6 +286,91 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 //////////
 //
+// Called to setup a new progress bar.
+//
+//////
+	REALTIME_API void realtime_progressbar_setup(int tnHandle, float tfRangeMin, float tfRange1, float tfRange2, float tfRangeMax, int tnColor1, int tnColor2, int tnColor3, int tnBorderColor, int tnNeedleColor, int tnShowBorder, int tnShowNeedle)
+	{
+		SWindow*	wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+		{
+			// Set or update the data
+			wnd->pbar.fRangeMin			= tfRangeMin;
+			wnd->pbar.fRange1			= tfRange1;
+			wnd->pbar.fRange2			= tfRange2;
+			wnd->pbar.fRangeMax			= tfRangeMax;
+			wnd->pbar.fValue			= tfRangeMin;
+
+			wnd->pbar.nColor1			= tnColor1;
+			wnd->pbar.nColor2			= tnColor2;
+			wnd->pbar.nColor3			= tnColor3;
+			wnd->pbar.nBorderColor		= tnBorderColor;
+			wnd->pbar.nNeedleColor		= tnNeedleColor;
+
+			wnd->pbar.lShowBorder		= (tnShowBorder != 0);
+			wnd->pbar.lShowNeedle		= (tnShowNeedle != 0);
+		}
+	}
+
+
+
+
+//////////
+//
+// Called to setup a new progress bar.
+//
+//////
+	REALTIME_API void realtime_progressbar_set_needle_position(int tnHandle, float tfValue)
+	{
+		SWindow*	wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+			wnd->pbar.fValue = tfValue;
+	}
+
+
+
+
+//////////
+//
+// Called to setup a new progress bar.
+//
+//////
+	REALTIME_API void realtime_progressbar_redraw(int tnHandle)
+	{
+		SWindow* wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+			iRender(wnd);			// Signal a refresh
+	}
+
+
+
+
+//////////
+//
 // Graph functions
 //
 //////
@@ -1399,6 +1484,133 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 		// Re-render our window
 		iRender(iLocateWindow(tnHandle));
+	}
+
+
+
+
+//////////
+//
+// Progress bar drawing algorithms
+//
+//////
+	// Based on tsWnd->pbar->fValue, and fRangeMin and fRangeMax, only the revelant part will be drawn
+	// |----part 1----|----part 2----|----part 3----|
+	void iPbarOverlay(SWindow* tsWnd, SBitmap* bmp)
+	{
+		int		lnX, lnTarget, lnMaxPixel, lnHeight, lnSeg1Pixels, lnSeg2Pixels, lnSeg3Pixels;
+		float	lfMin, lfMax, lfWidth, lfDelta, lfValue, lfSeg1, lfSeg2, lfSeg3;
+
+
+		//////////
+		// Make sure the values are sane
+		//////
+			lfMin			= min(tsWnd->pbar.fRangeMin, tsWnd->pbar.fRangeMax);
+			lfMax			= max(tsWnd->pbar.fRangeMin, tsWnd->pbar.fRangeMax);
+			lfSeg1			= tsWnd->pbar.fRange1 - lfMin;
+			lfSeg2			= (tsWnd->pbar.fRange2 - tsWnd->pbar.fRange1) - lfMin;
+			lfSeg3			= (lfMax - tsWnd->pbar.fRange2) - lfMin;
+			lfValue			= max(min(tsWnd->pbar.fValue, lfMax), lfMin);
+			lfDelta			= (lfMax - lfMin);
+			lfWidth			= (float)tsWnd->bmpMain.bmi.bmiHeader.biWidth;
+			lnHeight		= tsWnd->bmpMain.bmi.bmiHeader.biHeight - 1;
+		
+
+		//////////
+		// Avoid division-by-zero errors
+		//////
+			if (lfDelta == 0.0f)
+				return;
+
+
+		//////////
+		// Determine how much of this will be colored
+		//////
+			lnMaxPixel		= (int)(lfWidth * ((lfValue - lfMin) / lfDelta));
+			lnSeg1Pixels	= (int)(lfWidth * (lfSeg1 / lfDelta));
+			lnSeg2Pixels	= (int)(lfWidth * (lfSeg2 / lfDelta));
+			lnSeg3Pixels	= (int)(lfWidth * (lfSeg3 / lfDelta));
+
+
+		//////////
+		// Draw the min range
+		//////
+			// Draw the segment over from the left
+			for (lnX = 0; lnX < lnSeg1Pixels && lnX < lnMaxPixel; lnX++)
+			{
+				// Vertical line
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor1, 1.0f);
+			}
+
+
+		//////////
+		// Draw the middle range
+		//////
+			// Draw the segment from where we are right
+			for (lnTarget = lnSeg1Pixels + lnSeg2Pixels; lnX < lnTarget && lnX < lnMaxPixel; lnX++)
+			{
+				// Vertical line
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor2, 1.0f);
+			}
+
+
+		//////////
+		// Draw the max range
+		//////
+			// Draw the segment from where we are right
+			for (lnTarget = lnSeg1Pixels + lnSeg2Pixels + lnSeg3Pixels; lnX < lnTarget && lnX < lnMaxPixel; lnX++)
+			{
+				// Vertical line
+				iDrawLineVerticalAlpha(tsWnd, bmp, lnX, 0, lnHeight, tsWnd->pbar.nColor3, 1.0f);
+			}
+	}
+
+
+
+
+//////////
+//
+// Overlay a needle where it goes
+//
+//////
+	void iPbarOverlayNeedle(SWindow* tsWnd, SBitmap* bmp)
+	{
+		int		lnX, lnY, lnSpan, lnNeedleCenterPixel, lnHeight;
+		float	lfMin, lfMax, lfWidth, lfDelta, lfValue;
+
+
+		//////////
+		// Make sure the values are sane
+		//////
+			lfMin			= min(tsWnd->pbar.fRangeMin, tsWnd->pbar.fRangeMax);
+			lfMax			= max(tsWnd->pbar.fRangeMin, tsWnd->pbar.fRangeMax);
+			lfValue			= max(min(tsWnd->pbar.fValue, lfMax), lfMin);
+			lfDelta			= (lfMax - lfMin);
+			lfWidth			= (float)tsWnd->bmpMain.bmi.bmiHeader.biWidth;
+			lnHeight		= tsWnd->bmpMain.bmi.bmiHeader.biHeight - 1;
+		
+
+		//////////
+		// Avoid division-by-zero errors
+		//////
+			if (lfDelta == 0.0f)
+				return;
+
+
+		//////////
+		// Determine how much of this will be colored
+		//////
+			lnNeedleCenterPixel = (int)(lfWidth * ((lfValue - lfMin) / lfDelta));
+
+
+		//////////
+		// Draw the needle
+		//////
+			for (lnX = lnNeedleCenterPixel, lnY = lnHeight / 3, lnSpan = 0; lnY < lnHeight; lnY++, lnSpan = min(lnSpan + 1, 5))
+			{
+				// Horizontal line
+				iDrawLineHorizontalAlpha(tsWnd, bmp, lnNeedleCenterPixel - lnSpan, lnNeedleCenterPixel + lnSpan, lnY, tsWnd->pbar.nNeedleColor, 1.0f);
+			}
 	}
 
 
@@ -4303,6 +4515,62 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 //////////
 //
+// Called to frame the indicated rectangle with a solid color
+//
+//////
+	void iFrameRect(SBitmap* bmp, int tnBackRgb)
+	{
+		int		lnX, lnY;
+		char	lnRed, lnGrn, lnBlu;
+		SRGB*	lrgb;
+
+
+		// Make sure our environment is sane
+		if (bmp && tnBackRgb != -1)
+		{
+			// Grab our colors
+			lnRed = red(tnBackRgb);
+			lnGrn = grn(tnBackRgb);
+			lnBlu = blu(tnBackRgb);
+
+			// Iterate for every row
+			for (lnY = 0; lnY < bmp->bmi.bmiHeader.biHeight; lnY++)
+			{
+				// Compute the pointer for this row
+				lrgb = (SRGB*)(bmp->bits + ((bmp->bmi.bmiHeader.biHeight - lnY - 1) * bmp->actualWidth));
+				if (lnY == 0 || lnY == bmp->bmi.bmiHeader.biHeight - 1)
+				{
+					// Do top and bottom
+					for (lnX = 0; lnX < bmp->bmi.bmiHeader.biWidth; lnX++, lrgb++)
+					{
+						// Set this pixel
+						lrgb->red	= lnRed;
+						lrgb->grn	= lnGrn;
+						lrgb->blu	= lnBlu;
+					}
+
+				} else {
+					// Do left and right side
+					// Left side
+					lrgb->red	= lnRed;
+					lrgb->grn	= lnGrn;
+					lrgb->blu	= lnBlu;
+
+					// Right side
+					lrgb += bmp->bmi.bmiHeader.biWidth - 1;
+					lrgb->red	= lnRed;
+					lrgb->grn	= lnGrn;
+					lrgb->blu	= lnBlu;
+				}
+			}
+		}
+	}
+
+
+
+
+//////////
+//
 // Called to overlay the indicated bitmap atop the other one using its black and white pixelation
 // as color data to apply to the backRgb and foreRgb based on alpha settings.
 //
@@ -4386,9 +4654,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				tsWnd->threadCalls	= 0;
 
 				// Spawn the thread
-				if		(tsWnd->type == _TYPE_GRAPH)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGraphWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
+				     if (tsWnd->type == _TYPE_GRAPH)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGraphWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
 				else if (tsWnd->type == _TYPE_GAUGE)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGaugeWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
 				else if (tsWnd->type == _TYPE_MOVER)		tsWnd->threadHandle = CreateThread(NULL, 0, buildMoverWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_PBAR)			tsWnd->threadHandle = CreateThread(NULL, 0, buildPbarWorkerThreadProc, (void*)tsWnd, 0, &tsWnd->threadId);
 
 			} else {
 				// Indicate we've had additional calls while previously rendering
@@ -4501,6 +4770,43 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 			// Overlay / draw each object
 			iMoverDrawObjects(wnd, &wnd->bmpMain);
+
+			// All done!
+			// Refresh the graph for the redraw
+			InvalidateRect(wnd->hwnd, NULL, false);
+			iPaintWindow(wnd);
+		}
+
+		// Thread terminates
+		CloseHandle(wnd->threadHandle);
+		wnd->threadBusy = false;
+		ExitThread(0);
+	}
+
+	DWORD WINAPI buildPbarWorkerThreadProc(LPVOID lpParameter)
+	{
+		SWindow* wnd;
+
+
+		// Restore the parameter
+		wnd = (SWindow*)lpParameter;
+		if (wnd)
+		{
+			// Reset our call count
+			wnd->threadCalls = 0;
+
+			// Fill the background color
+			iGradient4FillOrBitmapOverlay(wnd, &wnd->bmpMain, &wnd->bmpBackground);
+
+			// Overlay the progress bar
+			iPbarOverlay(wnd, &wnd->bmpMain);
+
+			// Overlay the border
+			if (wnd->pbar.lShowBorder)
+				iFrameRect(&wnd->bmpMain, wnd->pbar.nBorderColor);
+
+			// Overlay needle
+			iPbarOverlayNeedle(wnd, &wnd->bmpMain);
 
 			// All done!
 			// Refresh the graph for the redraw

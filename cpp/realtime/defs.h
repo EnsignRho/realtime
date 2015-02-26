@@ -56,6 +56,11 @@
 	REALTIME_API void		realtime_show_or_hide						(int tnHandle, int tnShow);
 	REALTIME_API void		realtime_test_mode							(int tnEnabled);
 
+	// For progress bar functions
+	REALTIME_API void		realtime_progressbar_setup					(int tnHandle, float tfRangeMin, float tfRange1, float tfRange2, float tfRangeMax, int tnColor1, int tnColor2, int tnColor3, int tnBorderColor, int tnNeedleColor, int tnShowBorder, int tnShowNeedle);
+	REALTIME_API void		realtime_progressbar_set_needle_position	(int tnHandle, float tfValue);
+	REALTIME_API void		realtime_progressbar_redraw					(int tnHandle);
+
 	// For graph functions
 	REALTIME_API void		realtime_graph_setup						(int tnHandle, int tnBar1Rgb, int tnBar2Rgb, int tnDataRgb, char* tcFontName, int tnFontSize, int tnTextRgb, int tnDataPointThickness, float tfRangeUpper, float tfRangeLower, int tnSampleAverageCount, int tnGraduationIntegers, int tnGraduationDecimals);
 	REALTIME_API void		realtime_graph_setup2						(int tnHandle, int tnGridVisible, float tfGridCenter, float tfGridSquareSize, int tnGridCenterRgb, int tnGridLinesRgb, float tfGridAlpha, int tnMarginLeft, int tnMarginRight, int rangeVisible, int rangeRgb, float rangeAlpha, int rangeAverageSamples);
@@ -92,6 +97,9 @@
 //////////
 // Local/internal function prototype definitions
 //////
+	void					iPbarOverlay								(SWindow* tsWnd, SBitmap* bmp);
+	void					iPbarOverlayNeedle							(SWindow* tsWnd, SBitmap* bmp);
+
 	void					iGraphDrawBars								(SWindow* tsWnd, SBitmap* bmp);
 	void					iGraphDrawGrid								(SWindow* tsWnd, SBitmap* bmp);
 	void					iGraphOverlayGraduation						(SWindow* tsWnd, SBitmap* bmp);
@@ -158,12 +166,14 @@
 	void					iStoreInt									(char* tcDest16, int tnValue);
 	void					iPopulateEmpty24BitBitmapStructure			(SBitmap* bmp, int tnWidth, int tnHeight);
 	void					iFillRect									(SBitmap* bmp, int tnBackRgb);
+	void					iFrameRect									(SBitmap* bmp, int tnBackRgb);
 	void					iOverlayBitmapViaColorizingAlphaBlend		(SBitmap* bmpDst, SBitmap* bmpSrc, int tnBackRgb, int tnForeRgb, float tfAlpha);
 
 	void					iRender										(SWindow* tsWnd);
 	DWORD WINAPI			buildGaugeWorkerThreadProc					(LPVOID lpParameter);
 	DWORD WINAPI			buildGraphWorkerThreadProc					(LPVOID lpParameter);
 	DWORD WINAPI			buildMoverWorkerThreadProc					(LPVOID lpParameter);
+	DWORD WINAPI			buildPbarWorkerThreadProc					(LPVOID lpParameter);
 	LRESULT CALLBACK		realtimeWndProc								(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	VOID CALLBACK			iiMoverTimerProc							(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
 	void					iPaintWindow								(SWindow* tsWnd);

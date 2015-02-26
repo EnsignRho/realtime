@@ -59,6 +59,38 @@ struct SMouse
 	bool			rightButton;							// Right button is down?
 };
 
+// Data unique to the progress bar control
+struct SPBar
+{
+	//////////
+	// Progress bar is broken into four components, yielding three parts:
+	// A              B              C              D
+	// |----part 1----|----part 2----|----part 4----|
+	//////
+		float		fRangeMin;								// Point A
+		float		fRange1;								// Point B
+		float		fRange2;								// Point C
+		float		fRangeMax;								// Point D
+		float		fValue;									// The current value for the data point
+
+
+	//////////
+	// Formatting
+	//////
+		int			nColor1;								// Color for part 1
+		int			nColor2;								// Color for part 2
+		int			nColor3;								// Color for part 3
+		int			nBorderColor;							// Border color
+		int			nNeedleColor;							// Needle color
+
+
+	//////////
+	// Appearance
+	//////
+		bool		lShowBorder;							// Show the border?
+		bool		lShowNeedle;							// Show the needle?
+};
+
 // Data unique to the graph control
 struct SGraph
 {
@@ -274,6 +306,7 @@ struct SWindow
 		SGraph		graph;
 		SGauge		gauge;
 		SMover		mover;
+		SPBar		pbar;
 	};
 };
 

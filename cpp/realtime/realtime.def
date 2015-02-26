@@ -6,6 +6,10 @@ EXPORTS
 	realtime_un_subclass_form
 	realtime_show_or_hide
 	realtime_test_mode
+
+	realtime_progressbar_setup
+	realtime_progressbar_set_needle_position
+	realtime_progressbar_redraw
 	
 	realtime_graph_setup
 	realtime_graph_setup2
