@@ -41,6 +41,14 @@ struct SDataPoint
 	float			value;									// The value of this data point
 };
 
+// Structure for accessing RGB data within the DIB section
+struct SRGB
+{
+	unsigned char	blu;
+	unsigned char	grn;
+	unsigned char	red;
+};
+
 struct SBitmap
 {
 	HBITMAP			hbmp;									// the bitmap we create which holds the 
@@ -90,6 +98,38 @@ struct SPBar
 	//////
 		bool		lShowBorder;							// Show the border?
 		bool		lShowNeedle;							// Show the needle?
+};
+
+// The settins for the DNA wheel
+struct SPHWheel
+{
+	int			nCurrentValue;								// The value
+
+	int			nInner;										// Inner wheel
+	int			nOutter;									// Outter wheel
+	int			nGap;										// Number gap for checking repeating sequences
+	int			nPeriod;									// The period of this wheel
+	int			nKey;										// A multiple of 72
+
+	// Highlight colors
+	union {
+		SRGB	colorInner;
+		int		nColorInner;
+	};
+	union {
+		SRGB	colorOutter;
+		int		nColorOutter;
+	};
+};
+
+// The settins for the DNA wheel
+struct SPHDna
+{
+	int			nInner;
+	int			nOutter;
+	int			nGap;
+	int			nPeriod;
+	int			nKey;
 };
 
 // Data unique to the graph control
@@ -308,13 +348,7 @@ struct SWindow
 		SGauge		gauge;
 		SMover		mover;
 		SPBar		pbar;
+		SPHWheel	phwheel;
+		SPHDna		phdna;
 	};
-};
-
-// Structure for accessing RGB data within the DIB section
-struct SRGB
-{
-	unsigned char	blu;
-	unsigned char	grn;
-	unsigned char	red;
 };

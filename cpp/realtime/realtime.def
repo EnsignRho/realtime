@@ -38,3 +38,8 @@ EXPORTS
 	realtime_mover_recompute
 	realtime_mover_get_graphic_extents
 	realtime_mover_redraw
+
+	realtime_phwheel_setup
+	realtime_phwheel_redraw
+	realtime_phdna_setup
+	realtime_phdna_redraw

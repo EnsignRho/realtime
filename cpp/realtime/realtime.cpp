@@ -1515,6 +1515,115 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 //////////
 //
+// Setup the parameters for a wheel
+//
+//////
+	REALTIME_API void realtime_phwheel_setup(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey, int tnColorInner, int tnColorOutter)
+	{
+		SWindow*	wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+		{
+			// Set or update the data
+			wnd->phwheel.nInner			= tnInner;
+			wnd->phwheel.nOutter		= tnOutter;
+			wnd->phwheel.nGap			= tnGap;
+			wnd->phwheel.nPeriod		= tnPeriod;
+			wnd->phwheel.nKey			= tnKey;
+
+			wnd->phwheel.nColorInner	= tnColorInner;
+			wnd->phwheel.nColorOutter	= tnColorOutter;
+		}
+	}
+
+
+
+
+//////////
+//
+// Issue a wheel redraw
+//
+//////
+	REALTIME_API void realtime_phwheel_redraw(int tnHandle)
+	{
+		SWindow* wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+			iRender(wnd);			// Signal a refresh
+	}
+
+
+
+
+//////////
+//
+// Setup the parameters for a DNA strip
+//
+//////
+	REALTIME_API void realtime_phdna_setup(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey)
+	{
+		SWindow*	wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+		{
+			// Set or update the data
+			wnd->phwheel.nInner		= tnInner;
+			wnd->phwheel.nOutter	= tnOutter;
+			wnd->phwheel.nGap		= tnGap;
+			wnd->phwheel.nPeriod	= tnPeriod;
+			wnd->phwheel.nKey		= tnKey;
+		}
+	}
+
+
+
+
+//////////
+//
+// Issue a DNA redraw
+//
+//////
+	REALTIME_API void realtime_phdna_redraw(int tnHandle)
+	{
+		SWindow* wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+			iRender(wnd);			// Signal a refresh
+	}
+
+
+
+
+//////////
+//
 // Progress bar drawing algorithms
 //
 //////
@@ -3464,6 +3573,226 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		}
 	}
 
+	void iPHWheelOverlay(SWindow* tsWnd, SBitmap* bmp)
+	{
+		int		lnI, lnInner, lnOutter, lnBackoff, lnSegment, lnSegments, lnSegmentStep, colorBorderInner, colorBorderOutter, colorLight, colorDark;
+		bool	llMatch, llBackoff;
+		float	lfX, lfY, lfTheta, lfThetaInc1, lfThetaInc2, lfRadiusInnerMin, lfRadiusInnerMax, lfRadiusOutterMin, lfRadiusOutterMax, lfCosThetaMin, lfSinThetaMax, lfCosTheta2, lfSinTheta2;
+		float	lfOriginX, lfOriginY, lfX_ll, lfY_ll, lfX_ul, lfY_ul, lfX_lr, lfY_lr, lfX_ur, lfY_ur;
+		RECT	lrc;
+		char	buffer[32];
+
+
+		// Make sure we have been populated
+		if (tsWnd->phwheel.nPeriod != 0)
+		{
+			//////////
+			// Rotate around drawing segment lines for the inner and outter rings
+			//////
+				lfRadiusInnerMin	= (float)(bmp->bmi.bmiHeader.biWidth / 2) * 0.50f;
+				lfRadiusInnerMax	= (float)(bmp->bmi.bmiHeader.biWidth / 2) * 0.60f;
+				lfRadiusOutterMin	= (float)(bmp->bmi.bmiHeader.biWidth / 2) * 0.85f;
+				lfRadiusOutterMax	= (float)(bmp->bmi.bmiHeader.biWidth / 2) * 0.95f;
+				lfOriginX			= (float)(bmp->bmi.bmiHeader.biWidth / 2);
+				lfOriginY			= (float)(bmp->bmi.bmiHeader.biHeight / 2);
+				lnSegmentStep		= 6;
+				lnSegments			= tsWnd->phwheel.nPeriod / lnSegmentStep;
+				lfThetaInc1			= _2PI / (float)lnSegments;
+				lfThetaInc2			= lfThetaInc1;// * 0.90f;
+				lfTheta				= 0.0f - (lfThetaInc1 * 0.50f/*0.45f*/) - _PI2;
+				colorLight			= RGB(215,215,215);
+				colorDark			= RGB(128,128,128);
+				colorBorderInner	= iCombineColors(tsWnd->phwheel.nColorInner, rgb(0,0,0), 0.75f);
+				colorBorderOutter	= iCombineColors(tsWnd->phwheel.nColorInner, rgb(0,0,0), 0.75f);
+
+
+			//////////
+			// Determine the starting point
+			///////
+				lnInner		= tsWnd->phwheel.nInner;
+				lnOutter	= tsWnd->phwheel.nOutter;
+				for ( ; lnInner > 7 || lnOutter > 7; )
+				{
+					if (lnInner > 7)		lnInner		-= 6;
+					if (lnOutter > 7)		lnOutter	-= 6;
+				}
+
+
+			//////////
+			// Iterate around
+			//////
+				for (lnI = 0; lnI < 2; lnI++)
+				{
+					for (lnSegment = 0, lnBackoff = 0; lnSegment < lnSegments; lnSegment++, lfTheta += lfThetaInc1)
+					{
+						//////////
+						// Compute radians
+						//////
+							lfCosThetaMin	= cos(lfTheta);
+							lfCosTheta2		= cos(lfTheta + lfThetaInc2);
+							lfSinThetaMax	= sin(lfTheta);
+							lfSinTheta2		= sin(lfTheta + lfThetaInc2);
+
+
+						//////////
+						// Inner rings
+						/////
+							if (lnSegment < lnSegments / 2)
+							{
+								// 12 o'clock to 6 o'clock, use normal outter ring
+								// Left segment
+								lfX_ll = lfRadiusInnerMin * lfCosThetaMin;
+								lfY_ll = lfRadiusInnerMin * lfSinThetaMax;
+								lfX_ul = lfRadiusInnerMax * lfCosThetaMin;
+								lfY_ul = lfRadiusInnerMax * lfSinThetaMax;
+
+								// Right segment
+								lfX_lr = lfRadiusInnerMin * lfCosTheta2;
+								lfY_lr = lfRadiusInnerMin * lfSinTheta2;
+								lfX_ur = lfRadiusInnerMax * lfCosTheta2;
+								lfY_ur = lfRadiusInnerMax * lfSinTheta2;
+
+							} else {
+								// 6 o'clock to 12 o'clock, use inverted rings
+								// Left segment
+								lfX_ll = lfRadiusOutterMin * lfCosThetaMin;
+								lfY_ll = lfRadiusOutterMin * lfSinThetaMax;
+								lfX_ul = lfRadiusOutterMax * lfCosThetaMin;
+								lfY_ul = lfRadiusOutterMax * lfSinThetaMax;
+
+								// Right segment
+								lfX_lr = lfRadiusOutterMin * lfCosTheta2;
+								lfY_lr = lfRadiusOutterMin * lfSinTheta2;
+								lfX_ur = lfRadiusOutterMax * lfCosTheta2;
+								lfY_ur = lfRadiusOutterMax * lfSinTheta2;
+							}
+
+							// Draw left segment, top, bottom
+							llMatch		=            ((lnInner + ((lnSegment - lnBackoff) * lnSegmentStep)) % tsWnd->phwheel.nInner  == 0);
+							llMatch		= llMatch || ((lnInner + ((lnSegment - lnBackoff) * lnSegmentStep)) % tsWnd->phwheel.nOutter == 0);
+							llBackoff	= (lnSegment == 0/* || lnSegment == lnSegments / 2*/);
+							if (llBackoff)
+							{
+								// This is a segment at 12 o'clock or 6 o'clock, and it should be blank
+								++lnBackoff;
+								if (lnI == 0)
+								{
+									iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX_ul, lfOriginY + lfY_ul, lfOriginX + lfX_ur, lfOriginY + lfY_ur,
+																	lfOriginX + lfX_lr, lfOriginY + lfY_lr, lfOriginX + lfX_ll, lfOriginY + lfY_ll,
+																	colorDark,
+																	true, colorBorderInner);
+								}
+
+							} else {
+								// Draw normally
+								if (lnI == 0)
+								{
+									iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX_ul, lfOriginY + lfY_ul, lfOriginX + lfX_ur, lfOriginY + lfY_ur,
+																	lfOriginX + lfX_lr, lfOriginY + lfY_lr, lfOriginX + lfX_ll, lfOriginY + lfY_ll,
+																	((llMatch) ? ((lnSegment < lnSegments / 2) ? tsWnd->phwheel.nColorInner : tsWnd->phwheel.nColorOutter) : colorLight),
+																	true, colorBorderInner);
+								}
+
+								// Label it
+								if (llMatch && lnI == 1)
+								{
+									lfX = (lfX_ll + lfX_lr + lfX_ul + lfX_ur) / 4.0f;
+									lfY = (lfY_ll + lfY_lr + lfY_ul + lfY_ur) / 4.0f;
+									sprintf(buffer, "%d\0", lnInner + ((lnSegment - lnBackoff) * lnSegmentStep));
+									DrawTextA(bmp->hdc, buffer, strlen(buffer), &lrc, DT_LEFT | DT_CALCRECT);
+									SetRect(&lrc,	(int)(lfOriginX + lfX) - (lrc.right - lrc.left) / 2,
+													(int)(lfOriginY + lfY) - (lrc.bottom - lrc.top) / 2,
+													(int)(lfOriginX + lfX) + (lrc.right - lrc.left) / 2,
+													(int)(lfOriginY + lfY) + (lrc.bottom - lrc.top) / 2);
+									SetBkMode(bmp->hdc, TRANSPARENT);
+									DrawTextA(bmp->hdc, buffer, strlen(buffer), &lrc, DT_LEFT);
+								}
+							}
+
+
+						//////////
+						// Outter rings
+						//////
+							if (lnSegment < lnSegments / 2)
+							{
+								// 12 o'clock to 6 o'clock, use normal outter ring
+								// Left segment
+								lfX_ll = lfRadiusOutterMin * lfCosThetaMin;
+								lfY_ll = lfRadiusOutterMin * lfSinThetaMax;
+								lfX_ul = lfRadiusOutterMax * lfCosThetaMin;
+								lfY_ul = lfRadiusOutterMax * lfSinThetaMax;
+
+								// Right segment
+								lfX_lr = lfRadiusOutterMin * lfCosTheta2;
+								lfY_lr = lfRadiusOutterMin * lfSinTheta2;
+								lfX_ur = lfRadiusOutterMax * lfCosTheta2;
+								lfY_ur = lfRadiusOutterMax * lfSinTheta2;
+
+							} else {
+								// 6 o'clock to 12 o'clock, use inverted rings
+								// Left segment
+								lfX_ll = lfRadiusInnerMin * lfCosThetaMin;
+								lfY_ll = lfRadiusInnerMin * lfSinThetaMax;
+								lfX_ul = lfRadiusInnerMax * lfCosThetaMin;
+								lfY_ul = lfRadiusInnerMax * lfSinThetaMax;
+
+								// Right segment
+								lfX_lr = lfRadiusInnerMin * lfCosTheta2;
+								lfY_lr = lfRadiusInnerMin * lfSinTheta2;
+								lfX_ur = lfRadiusInnerMax * lfCosTheta2;
+								lfY_ur = lfRadiusInnerMax * lfSinTheta2;
+							}
+
+							// Draw left segment, top, bottom
+							llMatch =            ((lnOutter + ((lnSegment - lnBackoff) * lnSegmentStep)) % tsWnd->phwheel.nInner  == 0);
+							llMatch = llMatch || ((lnOutter + ((lnSegment - lnBackoff) * lnSegmentStep)) % tsWnd->phwheel.nOutter == 0);
+							if (llBackoff)
+							{
+								// This is a segment at 12 o'clock or 6 o'clock, and it should be blank
+								if (lnI == 0)
+								{
+									iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX_ul, lfOriginY + lfY_ul, lfOriginX + lfX_ur, lfOriginY + lfY_ur,
+																	lfOriginX + lfX_lr, lfOriginY + lfY_lr, lfOriginX + lfX_ll, lfOriginY + lfY_ll,
+																	colorDark,
+																	true, colorBorderOutter);
+								}
+
+							} else {
+								// Draw normally
+								if (lnI == 0)
+								{
+									iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX_ul, lfOriginY + lfY_ul, lfOriginX + lfX_ur, lfOriginY + lfY_ur,
+																	lfOriginX + lfX_lr, lfOriginY + lfY_lr, lfOriginX + lfX_ll, lfOriginY + lfY_ll,
+																	((llMatch) ? ((lnSegment < lnSegments / 2) ? tsWnd->phwheel.nColorOutter : tsWnd->phwheel.nColorInner) : colorLight),
+																	true, colorBorderOutter);
+								}
+
+								// Label it
+								if (llMatch && lnI == 1)
+								{
+									lfX = (lfX_ll + lfX_lr + lfX_ul + lfX_ur) / 4.0f;
+									lfY = (lfY_ll + lfY_lr + lfY_ul + lfY_ur) / 4.0f;
+									sprintf(buffer, "%d\0", lnOutter + ((lnSegment - lnBackoff) * lnSegmentStep));
+									DrawTextA(bmp->hdc, buffer, strlen(buffer), &lrc, DT_LEFT | DT_CALCRECT);
+									SetRect(&lrc,	(int)(lfOriginX + lfX) - (lrc.right - lrc.left) / 2,
+										(int)(lfOriginY + lfY) - (lrc.bottom - lrc.top) / 2,
+										(int)(lfOriginX + lfX) + (lrc.right - lrc.left) / 2,
+										(int)(lfOriginY + lfY) + (lrc.bottom - lrc.top) / 2);
+									SetBkMode(bmp->hdc, TRANSPARENT);
+									DrawTextA(bmp->hdc, buffer, strlen(buffer), &lrc, DT_LEFT);
+								}
+							}
+
+					}
+				}
+
+		}
+	}
+
+	void iPHDnaOverlay(SWindow* tsWnd, SBitmap* bmp)
+	{
+	}
+
 
 
 
@@ -4830,6 +5159,60 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 //////////
 //
+// Called to frame an arbitrary rectangle
+//
+//////
+	void iFillRectArbitrary(SWindow* tsWnd, SBitmap* bmp, float tfXUl, float tfYUl, float tfXUr, float tfYUr, float tfXLr, float tfYLr, float tfXLl, float tfYLl, int tnRgb, bool tlFrame, int tnFrameRgb)
+	{
+		// Draw one normally, and draw another rotated (to hide integer aliasing on pixels ... Ugh! :-))
+		iiFillRectArbitrary(tsWnd, bmp, tfXUl, tfYUl, tfXUr, tfYUr, tfXLr, tfYLr, tfXLl, tfYLl, tnRgb, tlFrame, tnFrameRgb);
+		iiFillRectArbitrary(tsWnd, bmp, tfXUr, tfYUr, tfXLr, tfYLr, tfXLl, tfYLl, tfXUl, tfYUl, tnRgb, tlFrame, tnFrameRgb);
+	}
+
+	void iiFillRectArbitrary(SWindow* tsWnd, SBitmap* bmp, float tfXUl, float tfYUl, float tfXUr, float tfYUr, float tfXLr, float tfYLr, float tfXLl, float tfYLl, int tnRgb, bool tlFrame, int tnFrameRgb)
+	{
+		int		lnStep, lnStepCount;
+		float	lfYL, lfXL, lfYR, lfXR, lfDeltaXL, lfDeltaYL, lfDeltaXR, lfDeltaYR, lfStepXL, lfStepYL, lfStepXR, lfStepYR;
+
+
+		// Determine how many points we need to hit everything between
+		lfDeltaXL		= tfXUl - tfXLl;
+		lfDeltaYL		= tfYUl - tfYLl;
+		lfDeltaXR		= tfXUr - tfXLr;
+		lfDeltaYR		= tfYUr - tfYLr;
+
+		// Prepare the stepping for each point
+		lnStepCount		= max((int)(sqrt(lfDeltaXL*lfDeltaXL + lfDeltaYL*lfDeltaYL) * 2.0f), (int)(sqrt(lfDeltaXR*lfDeltaXR + lfDeltaYR*lfDeltaYR) * 2.0f));
+		lfStepXL		= lfDeltaXL / (float)lnStepCount;
+		lfStepYL		= lfDeltaYL / (float)lnStepCount;
+		lfStepXR		= lfDeltaXR / (float)lnStepCount;
+		lfStepYR		= lfDeltaYR / (float)lnStepCount;
+
+		// Draw the points on this line
+		for (	lnStep = 0, lfXL = tfXLl, lfYL = tfYLl, lfXR = tfXLr, lfYR = tfYLr;
+				lnStep < lnStepCount;
+				lnStep++, lfYL += lfStepYL, lfXL += lfStepXL, lfYR += lfStepYR, lfXR += lfStepXR	)
+		{
+			// Draw this line
+			iDrawLineArbitrary(tsWnd, bmp, lfXL, lfYL, lfXR, lfYR, tnRgb);
+		}
+
+		// Frame if need be
+		if (tlFrame)
+		{
+			// Left, top, right, bottom
+			iDrawLineArbitrary(tsWnd, bmp, tfXLl, tfYLl, tfXUl, tfYUl, tnFrameRgb);
+			iDrawLineArbitrary(tsWnd, bmp, tfXUl, tfYUl, tfXUr, tfYUr, tnFrameRgb);
+			iDrawLineArbitrary(tsWnd, bmp, tfXUr, tfYUr, tfXLr, tfYLr, tnFrameRgb);
+			iDrawLineArbitrary(tsWnd, bmp, tfXLr, tfYLr, tfXLl, tfYLl, tnFrameRgb);
+		}
+	}
+
+
+
+
+//////////
+//
 // Called to overlay the indicated bitmap atop the other one using its black and white pixelation
 // as color data to apply to the backRgb and foreRgb based on alpha settings.
 //
@@ -4893,6 +5276,49 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			}
 		}
 	}
+;
+
+
+
+
+//////////
+//
+// Combines the two colors with the indicated weight
+//
+//////
+	int iCombineColors(int tnColor1, int tnColor2, float tfColor1Weight)
+	{
+		float lfMalp;
+		union {
+			SRGB	color1;
+			int		_color1;
+		};
+		union {
+			SRGB	color2;
+			int		_color2;
+		};
+		union {
+			SRGB	color;
+			int		_color;
+		};
+
+
+		//////////
+		// Create the color
+		//////
+			lfMalp		= 1.0f - tfColor1Weight;
+			_color1		= tnColor1;
+			_color2		= tnColor2;
+			color.red	= (unsigned char)(((float)color1.red * tfColor1Weight) + ((float)color2.red * lfMalp));
+			color.grn	= (unsigned char)(((float)color1.grn * tfColor1Weight) + ((float)color2.grn * lfMalp));
+			color.blu	= (unsigned char)(((float)color1.blu * tfColor1Weight) + ((float)color2.blu * lfMalp));
+
+
+		//////////
+		// Computed color
+		//////
+			return(_color);
+	}
 
 
 
@@ -4914,10 +5340,13 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				tsWnd->threadCalls	= 0;
 
 				// Spawn the thread
-				     if (tsWnd->type == _TYPE_GRAPH)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGraphWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
-				else if (tsWnd->type == _TYPE_GAUGE)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGaugeWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
-				else if (tsWnd->type == _TYPE_MOVER)		tsWnd->threadHandle = CreateThread(NULL, 0, buildMoverWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
-				else if (tsWnd->type == _TYPE_PBAR)			tsWnd->threadHandle = CreateThread(NULL, 0, buildPbarWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
+				     if (tsWnd->type == _TYPE_GRAPH)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGraphWorkerThreadProc,		(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_GAUGE)		tsWnd->threadHandle = CreateThread(NULL, 0, buildGaugeWorkerThreadProc,		(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_MOVER)		tsWnd->threadHandle = CreateThread(NULL, 0, buildMoverWorkerThreadProc,		(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_PBAR)			tsWnd->threadHandle = CreateThread(NULL, 0, buildPbarWorkerThreadProc,		(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_PHWHEEL)		tsWnd->threadHandle = CreateThread(NULL, 0, buildPHWheelWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_PHDNA)		tsWnd->threadHandle = CreateThread(NULL, 0, buildPHDnaWorkerThreadProc,		(void*)tsWnd, 0, &tsWnd->threadId);
+				else										_asm nop;
 				// Note:  Called thread will reset busy upon termination
 
 			} else {
@@ -5068,6 +5497,66 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 			// Overlay needle
 			iPbarOverlayNeedle(wnd, &wnd->bmpMain);
+
+			// All done!
+			// Refresh the graph for the redraw
+			InvalidateRect(wnd->hwnd, NULL, false);
+			iPaintWindow(wnd);
+		}
+
+		// Thread terminates
+		CloseHandle(wnd->threadHandle);
+		wnd->threadBusy = false;
+		ExitThread(0);
+	}
+
+	DWORD WINAPI buildPHWheelWorkerThreadProc(LPVOID lpParameter)
+	{
+		SWindow* wnd;
+
+
+		// Restore the parameter
+		wnd = (SWindow*)lpParameter;
+		if (wnd)
+		{
+			// Reset our call count
+			wnd->threadCalls = 0;
+
+			// Fill the background color
+			iGradient4FillOrBitmapOverlay(wnd, &wnd->bmpMain, &wnd->bmpBackground);
+
+			// Overlay the prime harmonics wheel
+			iPHWheelOverlay(wnd, &wnd->bmpMain);
+
+			// All done!
+			// Refresh the graph for the redraw
+			InvalidateRect(wnd->hwnd, NULL, false);
+			iPaintWindow(wnd);
+		}
+
+		// Thread terminates
+		CloseHandle(wnd->threadHandle);
+		wnd->threadBusy = false;
+		ExitThread(0);
+	}
+
+	DWORD WINAPI buildPHDnaWorkerThreadProc(LPVOID lpParameter)
+	{
+		SWindow* wnd;
+
+
+		// Restore the parameter
+		wnd = (SWindow*)lpParameter;
+		if (wnd)
+		{
+			// Reset our call count
+			wnd->threadCalls = 0;
+
+			// Fill the background color
+			iGradient4FillOrBitmapOverlay(wnd, &wnd->bmpMain, &wnd->bmpBackground);
+
+			// Overlay the prime harmonics wheel
+			iPHDnaOverlay(wnd, &wnd->bmpMain);
 
 			// All done!
 			// Refresh the graph for the redraw

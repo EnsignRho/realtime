@@ -66,7 +66,9 @@
 	const int	_TYPE_GRAPH				= 1;
 	const int	_TYPE_MOVER				= 2;
 	const int	_TYPE_PBAR				= 3;
-	const int	_TYPE_MAX				= 3;
+	const int	_TYPE_PHWHEEL			= 4;
+	const int	_TYPE_PHDNA				= 5;
+	const int	_TYPE_MAX				= 5;
 
 	const int	_LOW_RANGE				= 0;
 	const int	_MID_RANGE				= 1;

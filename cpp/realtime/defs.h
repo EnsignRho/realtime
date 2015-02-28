@@ -93,6 +93,14 @@
 	REALTIME_API void		realtime_mover_get_graphic_extents			(int tnHandle, int tnObjectId, char* tcXHome16, char* tcYHome16, char* tcWidth16, char* tcHeight16, char* tcXDest16, char* tcYDest16, char* tcXStep16, char* tcYStep16, char* tcAnimationStepCount16);
 	REALTIME_API void		realtime_mover_redraw						(int tnHandle);
 
+	// For prime harmonics Wheel functions
+	REALTIME_API void		realtime_phwheel_setup						(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey, int tnColorInner, int tnColorOutter);
+	REALTIME_API void		realtime_phwheel_redraw						(int tnHandle);
+
+	// For prime harmonics DNA functions
+	REALTIME_API void		realtime_phdna_setup						(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey);
+	REALTIME_API void		realtime_phdna_redraw						(int tnHandle);
+
 
 //////////
 // Local/internal function prototype definitions
@@ -136,6 +144,9 @@
 	bool					iiMoverTrackMouseRightButtonPressed			(SWindow* tsWnd);
 	void					iiMoverDeleteObjectChain					(SMoverObj** objRoot);
 
+	void					iPHWheelOverlay								(SWindow* tsWnd, SBitmap* bmp);
+	void					iPHDnaOverlay								(SWindow* tsWnd, SBitmap* bmp);
+
 	int						iGetNextUniqueId							(void);
 	SWindow*				iCreateNewSWindow							(void);
 	void					iDeleteSWindow								(SWindow* tsWnd);
@@ -169,13 +180,18 @@
 	void					iPopulateEmpty24BitBitmapStructure			(SBitmap* bmp, int tnWidth, int tnHeight);
 	void					iFillRect									(SBitmap* bmp, int tnBackRgb);
 	void					iFrameRect									(SBitmap* bmp, int tnBackRgb);
+	void					iFillRectArbitrary							(SWindow* tsWnd, SBitmap* bmp, float tfXUl, float tfYUl, float tfXUr, float tfYUr, float tfXLr, float tfYLr, float tfXLl, float tfYLl, int tnRgb, bool tlFrame, int tnFrameRgb);
+	void					iiFillRectArbitrary							(SWindow* tsWnd, SBitmap* bmp, float tfXUl, float tfYUl, float tfXUr, float tfYUr, float tfXLr, float tfYLr, float tfXLl, float tfYLl, int tnRgb, bool tlFrame, int tnFrameRgb);
 	void					iOverlayBitmapViaColorizingAlphaBlend		(SBitmap* bmpDst, SBitmap* bmpSrc, int tnBackRgb, int tnForeRgb, float tfAlpha);
+	int						iCombineColors								(int tnColor1, int tnColor2, float tfColor1Weight);
 
 	void					iRender										(SWindow* tsWnd);
 	DWORD WINAPI			buildGaugeWorkerThreadProc					(LPVOID lpParameter);
 	DWORD WINAPI			buildGraphWorkerThreadProc					(LPVOID lpParameter);
 	DWORD WINAPI			buildMoverWorkerThreadProc					(LPVOID lpParameter);
 	DWORD WINAPI			buildPbarWorkerThreadProc					(LPVOID lpParameter);
+	DWORD WINAPI			buildPHWheelWorkerThreadProc				(LPVOID lpParameter);
+	DWORD WINAPI			buildPHDnaWorkerThreadProc					(LPVOID lpParameter);
 	LRESULT CALLBACK		realtimeWndProc								(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	VOID CALLBACK			iiMoverTimerProc							(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
 	void					iPaintWindow								(SWindow* tsWnd);
