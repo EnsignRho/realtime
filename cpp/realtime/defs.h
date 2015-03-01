@@ -186,6 +186,7 @@
 	int						iCombineColors								(int tnColor1, int tnColor2, float tfColor1Weight);
 	bool					iIsPrime									(int lnValue);
 	void					iPointOnLine								(float tfX1, float tfY1, float tfX2, float tfY2, float tfDelta, float* tfX, float* tfY);
+	void					iBmp_saveToDisk								(SBitmap* bmp, s8* tcPathname);
 
 	void					iRender										(SWindow* tsWnd);
 	DWORD WINAPI			buildGaugeWorkerThreadProc					(LPVOID lpParameter);

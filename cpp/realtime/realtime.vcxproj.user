@@ -19,4 +19,9 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>\realtime</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleasePH|Win32'">
+    <LocalDebuggerCommand>C:\Program Files (x86)\Microsoft Visual FoxPro 9\vfp9.exe</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>\libsf\source\unsorted\primeharmonics\xbase</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
 </Project>

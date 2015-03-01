@@ -3583,7 +3583,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		float				lfX2_ll, lfY2_ll, lfX2_lr, lfY2_lr, lfX2_ul, lfY2_ul, lfX2_ur, lfY2_ur;
 		float				lfX3_ll, lfY3_ll, lfX3_lr, lfY3_lr, lfX3_ul, lfY3_ul, lfX3_ur, lfY3_ur;
 		RECT				lrc;
-		char				buffer[32];
+		char				buffer[_MAX_PATH];
 		SBuilder*			inners;
 		SBuilder*			outters;
 		SWheelPointData		wpd;
@@ -3962,6 +3962,14 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			//////
 				iBuilder_freeAndRelease(&inners);
 				iBuilder_freeAndRelease(&outters);
+
+
+// For debugging:
+// 			//////////
+// 			// Copy the image to disk
+// 			//////
+// 				sprintf(buffer, "prime_harmonic_wheel_%d.bmp\0", tsWnd->phwheel.nPeriod);
+// 				iBmp_saveToDisk(bmp, buffer);
 		}
 	}
 
@@ -5555,6 +5563,39 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				*tfX		= tfX1 + (lfRadius * tfDelta * cos(lfTheta));
 				*tfY		= tfY1 + (lfRadius * tfDelta * sin(lfTheta));
 			}
+	}
+
+
+
+
+/////////
+//
+// Saves the bitmap to the disk file
+//
+//////
+	void iBmp_saveToDisk(SBitmap* bmp, s8* tcPathname)
+	{
+		FILE*				lfh;
+		BITMAPFILEHEADER	lbh;
+
+
+		lfh = fopen(tcPathname, "wb+");
+		if (lfh)
+		{
+			// Write file header, info header, bitmap bits
+			lbh.bfType			= 'MB';
+			lbh.bfReserved1		= 0;
+			lbh.bfReserved2		= 0;
+			lbh.bfOffBits		= sizeof(lbh) + sizeof(bmp->bmi.bmiHeader);
+			lbh.bfSize			= lbh.bfOffBits + bmp->bmi.bmiHeader.biSizeImage;
+
+			fwrite(&lbh,				1,		sizeof(lbh),						lfh);
+			fwrite(&bmp->bmi.bmiHeader,	1,		sizeof(bmp->bmi.bmiHeader),			lfh);
+			fwrite(bmp->bits,			1,		bmp->bmi.bmiHeader.biSizeImage,		lfh);
+
+			// Close
+			fclose(lfh);
+		}
 	}
 
 
