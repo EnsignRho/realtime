@@ -3576,10 +3576,12 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 	void iPHWheelOverlay(SWindow* tsWnd, SBitmap* bmp)
 	{
 		u32					lnI;
-		int					lnInner, lnOutter, lnBackoff, lnThisSegment, lnSegment, lnSegments, lnSegmentStep, colorBorderInner, colorBorderOutter, colorLight, colorDark;
-		bool				llMatch, llMatchInner, llMatchOutter, llBackoff;
+		int					lnInner, lnOutter, lnBackoff, lnThisSegment, lnSegment, lnSegments, lnSegmentStep, colorBorderInner, colorBorderOutter, colorLight, colorDark, colorPrime, colorPrimeBorder, colorNonPrime, colorNonPrimeBorder;
+		bool				llMatch, llMatchInner, llMatchOutter, llBackoff, llIsPrime;
 		float				lfX, lfY, lfTheta, lfThetaInc1, lfThetaInc2, lfRadiusInnerMin, lfRadiusInnerMax, lfRadiusOutterMin, lfRadiusOutterMax, lfCosThetaMin, lfSinThetaMax, lfCosTheta2, lfSinTheta2;
 		float				lfOriginX, lfOriginY, lfX_ll, lfY_ll, lfX_ul, lfY_ul, lfX_lr, lfY_lr, lfX_ur, lfY_ur;
+		float				lfX2_ll, lfY2_ll, lfX2_lr, lfY2_lr, lfX2_ul, lfY2_ul, lfX2_ur, lfY2_ur;
+		float				lfX3_ll, lfY3_ll, lfX3_lr, lfY3_lr, lfX3_ul, lfY3_ul, lfX3_ur, lfY3_ur;
 		RECT				lrc;
 		char				buffer[32];
 		SBuilder*			inners;
@@ -3616,6 +3618,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				colorDark			= RGB(128,128,128);
 				colorBorderInner	= iCombineColors(tsWnd->phwheel.nColorInner, rgb(0,0,0), 0.75f);
 				colorBorderOutter	= iCombineColors(tsWnd->phwheel.nColorInner, rgb(0,0,0), 0.75f);
+				colorPrime			= RGB(255,255,0);
+				colorPrimeBorder	= iCombineColors(colorPrime, colorBorderOutter, 0.50f);
+				colorNonPrime		= RGB(0,164,255);
+				colorNonPrimeBorder	= iCombineColors(colorPrime, colorBorderOutter, 0.50f);
 
 
 			//////////
@@ -3668,6 +3674,18 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								wpd.x = lfOriginX + ((lfX_ul + lfX_ur) / 2.0f);
 								wpd.y = lfOriginY + ((lfY_ul + lfY_ur) / 2.0f);
 
+								// Compute a point for the prime marker
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.85f, &lfX2_ul, &lfY2_ul);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.85f, &lfX2_ur, &lfY2_ur);
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 1.00f, &lfX2_ll, &lfY2_ll);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 1.00f, &lfX2_lr, &lfY2_lr);
+
+								// Compute a point for the non-prime marker
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.00f, &lfX3_ul, &lfY3_ul);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.00f, &lfX3_ur, &lfY3_ur);
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.15f, &lfX3_ll, &lfY3_ll);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.15f, &lfX3_lr, &lfY3_lr);
+
 							} else {
 								// 6 o'clock to 12 o'clock, use inverted rings
 								// Left segment
@@ -3685,6 +3703,18 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								// Midpoint
 								wpd.x = lfOriginX + ((lfX_ll + lfX_lr) / 2.0f);
 								wpd.y = lfOriginY + ((lfY_ll + lfY_lr) / 2.0f);
+
+								// Compute a point for the prime marker
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.85f, &lfX3_ul, &lfY3_ul);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.85f, &lfX3_ur, &lfY3_ur);
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 1.00f, &lfX3_ll, &lfY3_ll);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 1.00f, &lfX3_lr, &lfY3_lr);
+
+								// Compute a point for the non-prime marker
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.00f, &lfX2_ul, &lfY2_ul);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.00f, &lfX2_ur, &lfY2_ur);
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.15f, &lfX2_ll, &lfY2_ll);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.15f, &lfX2_lr, &lfY2_lr);
 							}
 
 							// Draw left segment, top, bottom
@@ -3693,26 +3723,52 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 							llMatchOutter	= (lnThisSegment % tsWnd->phwheel.nOutter == 0);
 							llMatch			= (llMatchInner || llMatchOutter);
 							llBackoff		= (lnSegment == 0);
+							llIsPrime		= !llBackoff && iIsPrime(lnThisSegment);
 							if (llBackoff)
 							{
 								// This is a segment at 12 o'clock or 6 o'clock, and it should be blank
 								++lnBackoff;
 								if (lnI == 0)
 								{
+									// Draw the cell
 									iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX_ul, lfOriginY + lfY_ul, lfOriginX + lfX_ur, lfOriginY + lfY_ur,
 																	lfOriginX + lfX_lr, lfOriginY + lfY_lr, lfOriginX + lfX_ll, lfOriginY + lfY_ll,
-																	colorDark,
-																	true, colorBorderInner);
+																	colorDark, true, colorBorderInner);
+
+									// If it's prime, indicate visually
+									if (llIsPrime)
+									{
+										iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX3_ul, lfOriginY + lfY3_ul, lfOriginX + lfX3_ur, lfOriginY + lfY3_ur,
+																		lfOriginX + lfX3_lr, lfOriginY + lfY3_lr, lfOriginX + lfX3_ll, lfOriginY + lfY3_ll,
+																		colorPrime, true, colorPrimeBorder);
+									} else if (!llBackoff) {
+										iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX2_ul, lfOriginY + lfY2_ul, lfOriginX + lfX2_ur, lfOriginY + lfY2_ur,
+																		lfOriginX + lfX2_lr, lfOriginY + lfY2_lr, lfOriginX + lfX2_ll, lfOriginY + lfY2_ll,
+																		colorNonPrime, true, colorNonPrimeBorder);
+									}
 								}
 
 							} else {
 								// Draw normally
 								if (lnI == 0)
 								{
+									// Draw the cell
 									iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX_ul, lfOriginY + lfY_ul, lfOriginX + lfX_ur, lfOriginY + lfY_ur,
 																	lfOriginX + lfX_lr, lfOriginY + lfY_lr, lfOriginX + lfX_ll, lfOriginY + lfY_ll,
 																	((llMatch) ? ((lnSegment < lnSegments / 2) ? tsWnd->phwheel.nColorInner : tsWnd->phwheel.nColorOutter) : colorLight),
 																	true, colorBorderInner);
+
+									// If it's prime, indicate visually
+									if (llIsPrime)
+									{
+										iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX3_ul, lfOriginY + lfY3_ul, lfOriginX + lfX3_ur, lfOriginY + lfY3_ur,
+																		lfOriginX + lfX3_lr, lfOriginY + lfY3_lr, lfOriginX + lfX3_ll, lfOriginY + lfY3_ll,
+																		colorPrime, true, colorPrimeBorder);
+									} else if (!llBackoff) {
+										iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX2_ul, lfOriginY + lfY2_ul, lfOriginX + lfX2_ur, lfOriginY + lfY2_ur,
+																		lfOriginX + lfX2_lr, lfOriginY + lfY2_lr, lfOriginX + lfX2_ll, lfOriginY + lfY2_ll,
+																		colorNonPrime, true, colorNonPrimeBorder);
+									}
 								}
 
 								// Label it
@@ -3762,6 +3818,18 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								wpd.x = lfOriginX + ((lfX_ll + lfX_lr) / 2.0f);
 								wpd.y = lfOriginY + ((lfY_ll + lfY_lr) / 2.0f);
 
+								// Compute a point for the prime marker
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.85f, &lfX2_ul, &lfY2_ul);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.85f, &lfX2_ur, &lfY2_ur);
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 1.00f, &lfX2_ll, &lfY2_ll);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 1.00f, &lfX2_lr, &lfY2_lr);
+
+								// Compute a point for the non-prime marker
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.00f, &lfX3_ul, &lfY3_ul);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.00f, &lfX3_ur, &lfY3_ur);
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.15f, &lfX3_ll, &lfY3_ll);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.15f, &lfX3_lr, &lfY3_lr);
+
 							} else {
 								// 6 o'clock to 12 o'clock, use inverted rings
 								// Left segment
@@ -3779,10 +3847,23 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								// Midpoint
 								wpd.x = lfOriginX + ((lfX_ul + lfX_ur) / 2.0f);
 								wpd.y = lfOriginY + ((lfY_ul + lfY_ur) / 2.0f);
+
+								// Compute a point for the prime marker
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.85f, &lfX3_ul, &lfY3_ul);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.85f, &lfX3_ur, &lfY3_ur);
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 1.00f, &lfX3_ll, &lfY3_ll);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 1.00f, &lfX3_lr, &lfY3_lr);
+
+								// Compute a point for the non-prime marker
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.00f, &lfX2_ul, &lfY2_ul);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.00f, &lfX2_ur, &lfY2_ur);
+								iPointOnLine(lfX_ll, lfY_ll, lfX_ul, lfY_ul, 0.15f, &lfX2_ll, &lfY2_ll);
+								iPointOnLine(lfX_lr, lfY_lr, lfX_ur, lfY_ur, 0.15f, &lfX2_lr, &lfY2_lr);
 							}
 
 							// Draw left segment, top, bottom
 							lnThisSegment	= lnOutter + ((lnSegment - lnBackoff) * lnSegmentStep);
+							llIsPrime		= !llBackoff && iIsPrime(lnThisSegment);
 							llMatchInner	= (lnThisSegment % tsWnd->phwheel.nInner  == 0);
 							llMatchOutter	= (lnThisSegment % tsWnd->phwheel.nOutter == 0);
 							llMatch			= (llMatchInner || llMatchOutter);
@@ -3791,20 +3872,45 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								// This is a segment at 12 o'clock or 6 o'clock, and it should be blank
 								if (lnI == 0)
 								{
+									// Draw the cell
 									iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX_ul, lfOriginY + lfY_ul, lfOriginX + lfX_ur, lfOriginY + lfY_ur,
 																	lfOriginX + lfX_lr, lfOriginY + lfY_lr, lfOriginX + lfX_ll, lfOriginY + lfY_ll,
-																	colorDark,
-																	true, colorBorderOutter);
+																	colorDark, true, colorBorderOutter);
+
+									// If it's prime, indicate visually
+									if (llIsPrime)
+									{
+										iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX2_ul, lfOriginY + lfY2_ul, lfOriginX + lfX2_ur, lfOriginY + lfY2_ur,
+																		lfOriginX + lfX2_lr, lfOriginY + lfY2_lr, lfOriginX + lfX2_ll, lfOriginY + lfY2_ll,
+																		colorPrime, true, colorPrimeBorder);
+									} else if (!llBackoff) {
+										iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX3_ul, lfOriginY + lfY3_ul, lfOriginX + lfX3_ur, lfOriginY + lfY3_ur,
+																		lfOriginX + lfX3_lr, lfOriginY + lfY3_lr, lfOriginX + lfX3_ll, lfOriginY + lfY3_ll,
+																		colorNonPrime, true, colorNonPrimeBorder);
+									}
 								}
 
 							} else {
 								// Draw normally
 								if (lnI == 0)
 								{
+									// Draw the cell
 									iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX_ul, lfOriginY + lfY_ul, lfOriginX + lfX_ur, lfOriginY + lfY_ur,
 																	lfOriginX + lfX_lr, lfOriginY + lfY_lr, lfOriginX + lfX_ll, lfOriginY + lfY_ll,
 																	((llMatch) ? ((lnSegment < lnSegments / 2) ? tsWnd->phwheel.nColorOutter : tsWnd->phwheel.nColorInner) : colorLight),
 																	true, colorBorderOutter);
+
+									// If it's prime, indicate visually
+									if (llIsPrime)
+									{
+										iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX2_ul, lfOriginY + lfY2_ul, lfOriginX + lfX2_ur, lfOriginY + lfY2_ur,
+																		lfOriginX + lfX2_lr, lfOriginY + lfY2_lr, lfOriginX + lfX2_ll, lfOriginY + lfY2_ll,
+																		colorPrime, true, colorPrimeBorder);
+									} else if (!llBackoff) {
+										iFillRectArbitrary(tsWnd, bmp,	lfOriginX + lfX3_ul, lfOriginY + lfY3_ul, lfOriginX + lfX3_ur, lfOriginY + lfY3_ur,
+																		lfOriginX + lfX3_lr, lfOriginY + lfY3_lr, lfOriginX + lfX3_ll, lfOriginY + lfY3_ll,
+																		colorNonPrime, true, colorNonPrimeBorder);
+									}
 								}
 
 								// Label it
@@ -3815,9 +3921,9 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 									sprintf(buffer, "%d\0", lnOutter + ((lnSegment - lnBackoff) * lnSegmentStep));
 									DrawTextA(bmp->hdc, buffer, strlen(buffer), &lrc, DT_LEFT | DT_CALCRECT);
 									SetRect(&lrc,	(int)(lfOriginX + lfX) - (lrc.right - lrc.left) / 2,
-										(int)(lfOriginY + lfY) - (lrc.bottom - lrc.top) / 2,
-										(int)(lfOriginX + lfX) + (lrc.right - lrc.left) / 2,
-										(int)(lfOriginY + lfY) + (lrc.bottom - lrc.top) / 2);
+													(int)(lfOriginY + lfY) - (lrc.bottom - lrc.top) / 2,
+													(int)(lfOriginX + lfX) + (lrc.right - lrc.left) / 2,
+													(int)(lfOriginY + lfY) + (lrc.bottom - lrc.top) / 2);
 									SetBkMode(bmp->hdc, TRANSPARENT);
 									DrawTextA(bmp->hdc, buffer, strlen(buffer), &lrc, DT_LEFT);
 								}
@@ -5388,6 +5494,67 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		// Computed color
 		//////
 			return(_color);
+	}
+;
+
+
+
+
+//////////
+//
+// Brute force primality test
+//
+//////
+	bool iIsPrime(int lnValue)
+	{
+		int lnCandidate;
+
+
+		for (lnCandidate = 2; lnCandidate < lnValue; lnCandidate++)
+		{
+			// If it's evenly divisible, it's not prime
+			if (lnValue % lnCandidate == 0)
+				return(false);
+		}
+
+		// If we get here, prime
+		return(true);
+	}
+
+
+
+
+//////////
+//
+// Called to find a point on a line, a delta distance from 0.0f..1.0f from (tfX1,tfY1) toward (tfX2,tfY2)
+//
+//////
+	void iPointOnLine(float tfX1, float tfY1, float tfX2, float tfY2, float tfDelta, float* tfX, float* tfY)
+	{
+		float lfRadius, lfTheta, lfDeltaX, lfDeltaY;
+
+
+		//////////
+		// Based on the value, use the appropriate algorithm...
+		//////
+			lfDeltaX	= tfX2 - tfX1;
+			lfDeltaY	= tfY2 - tfY1;
+			if (tfY1 == tfY2)
+			{
+				// Horizontal
+				*tfX = (tfX1 + (lfDeltaX * tfDelta));
+
+			} else if (tfX1 == tfX2) {
+				// Vertical
+				*tfY = (tfY1 + (lfDeltaY * tfDelta));
+
+			} else {
+				// Arbitrary
+				lfTheta		= atan2(lfDeltaY, lfDeltaX);
+				lfRadius	= sqrt(lfDeltaX*lfDeltaX + lfDeltaY*lfDeltaY);
+				*tfX		= tfX1 + (lfRadius * tfDelta * cos(lfTheta));
+				*tfY		= tfY1 + (lfRadius * tfDelta * sin(lfTheta));
+			}
 	}
 
 
