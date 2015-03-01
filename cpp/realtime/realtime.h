@@ -45,6 +45,14 @@
 
 
 //////////
+// Use of builder
+//////
+	#include "\libsf\utils\common\cpp\common_types.h"
+	#include "\libsf\utils\common\cpp\builder.h"
+	#include "\libsf\utils\common\cpp\builder.cpp"
+
+
+//////////
 // Exporting or importing
 //////
 	#ifdef REALTIME_EXPORTS
@@ -66,5 +74,4 @@
 //////////
 // Include an overlay.bmp file as a source file
 //////
-typedef unsigned char u8;
 	#include "overlay.h"					// cgc_Overlay

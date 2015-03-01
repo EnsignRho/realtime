@@ -3575,17 +3575,29 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 	void iPHWheelOverlay(SWindow* tsWnd, SBitmap* bmp)
 	{
-		int		lnI, lnInner, lnOutter, lnBackoff, lnSegment, lnSegments, lnSegmentStep, colorBorderInner, colorBorderOutter, colorLight, colorDark;
-		bool	llMatch, llBackoff;
-		float	lfX, lfY, lfTheta, lfThetaInc1, lfThetaInc2, lfRadiusInnerMin, lfRadiusInnerMax, lfRadiusOutterMin, lfRadiusOutterMax, lfCosThetaMin, lfSinThetaMax, lfCosTheta2, lfSinTheta2;
-		float	lfOriginX, lfOriginY, lfX_ll, lfY_ll, lfX_ul, lfY_ul, lfX_lr, lfY_lr, lfX_ur, lfY_ur;
-		RECT	lrc;
-		char	buffer[32];
+		u32					lnI;
+		int					lnInner, lnOutter, lnBackoff, lnThisSegment, lnSegment, lnSegments, lnSegmentStep, colorBorderInner, colorBorderOutter, colorLight, colorDark;
+		bool				llMatch, llMatchInner, llMatchOutter, llBackoff;
+		float				lfX, lfY, lfTheta, lfThetaInc1, lfThetaInc2, lfRadiusInnerMin, lfRadiusInnerMax, lfRadiusOutterMin, lfRadiusOutterMax, lfCosThetaMin, lfSinThetaMax, lfCosTheta2, lfSinTheta2;
+		float				lfOriginX, lfOriginY, lfX_ll, lfY_ll, lfX_ul, lfY_ul, lfX_lr, lfY_lr, lfX_ur, lfY_ur;
+		RECT				lrc;
+		char				buffer[32];
+		SBuilder*			inners;
+		SBuilder*			outters;
+		SWheelPointData		wpd;
+		SWheelPointData*	wpdp;
 
 
 		// Make sure we have been populated
 		if (tsWnd->phwheel.nPeriod != 0)
 		{
+			//////////
+			// Create our builders
+			//////
+				iBuilder_createAndInitialize(&inners, -1);
+				iBuilder_createAndInitialize(&outters, -1);
+
+
 			//////////
 			// Rotate around drawing segment lines for the inner and outter rings
 			//////
@@ -3652,6 +3664,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								lfX_ur = lfRadiusInnerMax * lfCosTheta2;
 								lfY_ur = lfRadiusInnerMax * lfSinTheta2;
 
+								// Midpoint
+								wpd.x = lfOriginX + ((lfX_ul + lfX_ur) / 2.0f);
+								wpd.y = lfOriginY + ((lfY_ul + lfY_ur) / 2.0f);
+
 							} else {
 								// 6 o'clock to 12 o'clock, use inverted rings
 								// Left segment
@@ -3665,12 +3681,18 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								lfY_lr = lfRadiusOutterMin * lfSinTheta2;
 								lfX_ur = lfRadiusOutterMax * lfCosTheta2;
 								lfY_ur = lfRadiusOutterMax * lfSinTheta2;
+
+								// Midpoint
+								wpd.x = lfOriginX + ((lfX_ll + lfX_lr) / 2.0f);
+								wpd.y = lfOriginY + ((lfY_ll + lfY_lr) / 2.0f);
 							}
 
 							// Draw left segment, top, bottom
-							llMatch		=            ((lnInner + ((lnSegment - lnBackoff) * lnSegmentStep)) % tsWnd->phwheel.nInner  == 0);
-							llMatch		= llMatch || ((lnInner + ((lnSegment - lnBackoff) * lnSegmentStep)) % tsWnd->phwheel.nOutter == 0);
-							llBackoff	= (lnSegment == 0/* || lnSegment == lnSegments / 2*/);
+							lnThisSegment	= lnInner + ((lnSegment - lnBackoff) * lnSegmentStep);
+							llMatchInner	= (lnThisSegment % tsWnd->phwheel.nInner  == 0);
+							llMatchOutter	= (lnThisSegment % tsWnd->phwheel.nOutter == 0);
+							llMatch			= (llMatchInner || llMatchOutter);
+							llBackoff		= (lnSegment == 0);
 							if (llBackoff)
 							{
 								// This is a segment at 12 o'clock or 6 o'clock, and it should be blank
@@ -3698,7 +3720,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								{
 									lfX = (lfX_ll + lfX_lr + lfX_ul + lfX_ur) / 4.0f;
 									lfY = (lfY_ll + lfY_lr + lfY_ul + lfY_ur) / 4.0f;
-									sprintf(buffer, "%d\0", lnInner + ((lnSegment - lnBackoff) * lnSegmentStep));
+									sprintf(buffer, "%d\0", lnThisSegment);
 									DrawTextA(bmp->hdc, buffer, strlen(buffer), &lrc, DT_LEFT | DT_CALCRECT);
 									SetRect(&lrc,	(int)(lfOriginX + lfX) - (lrc.right - lrc.left) / 2,
 													(int)(lfOriginY + lfY) - (lrc.bottom - lrc.top) / 2,
@@ -3708,6 +3730,14 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 									DrawTextA(bmp->hdc, buffer, strlen(buffer), &lrc, DT_LEFT);
 								}
 							}
+
+							// Was this an inner match?
+							if (llMatchInner)
+								iBuilder_appendData(inners, (u8*)&wpd, sizeof(wpd));
+
+							// Was this an outter value match?
+							if (llMatchOutter)
+								iBuilder_appendData(outters, (u8*)&wpd, sizeof(wpd));
 
 
 						//////////
@@ -3728,6 +3758,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								lfX_ur = lfRadiusOutterMax * lfCosTheta2;
 								lfY_ur = lfRadiusOutterMax * lfSinTheta2;
 
+								// Midpoint
+								wpd.x = lfOriginX + ((lfX_ll + lfX_lr) / 2.0f);
+								wpd.y = lfOriginY + ((lfY_ll + lfY_lr) / 2.0f);
+
 							} else {
 								// 6 o'clock to 12 o'clock, use inverted rings
 								// Left segment
@@ -3741,11 +3775,17 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								lfY_lr = lfRadiusInnerMin * lfSinTheta2;
 								lfX_ur = lfRadiusInnerMax * lfCosTheta2;
 								lfY_ur = lfRadiusInnerMax * lfSinTheta2;
+
+								// Midpoint
+								wpd.x = lfOriginX + ((lfX_ul + lfX_ur) / 2.0f);
+								wpd.y = lfOriginY + ((lfY_ul + lfY_ur) / 2.0f);
 							}
 
 							// Draw left segment, top, bottom
-							llMatch =            ((lnOutter + ((lnSegment - lnBackoff) * lnSegmentStep)) % tsWnd->phwheel.nInner  == 0);
-							llMatch = llMatch || ((lnOutter + ((lnSegment - lnBackoff) * lnSegmentStep)) % tsWnd->phwheel.nOutter == 0);
+							lnThisSegment	= lnOutter + ((lnSegment - lnBackoff) * lnSegmentStep);
+							llMatchInner	= (lnThisSegment % tsWnd->phwheel.nInner  == 0);
+							llMatchOutter	= (lnThisSegment % tsWnd->phwheel.nOutter == 0);
+							llMatch			= (llMatchInner || llMatchOutter);
 							if (llBackoff)
 							{
 								// This is a segment at 12 o'clock or 6 o'clock, and it should be blank
@@ -3783,9 +3823,39 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 								}
 							}
 
+							// Was this an inner match?
+							if (llMatchInner)
+								iBuilder_appendData(inners, (u8*)&wpd, sizeof(wpd));
+
+							// Was this an outter match?
+							if (llMatchOutter)
+								iBuilder_appendData(outters, (u8*)&wpd, sizeof(wpd));
+
 					}
 				}
 
+
+			//////////
+			// Overlay lines connecting the points
+			//////
+				for (lnI = sizeof(SWheelPointData), wpdp = ((SWheelPointData*)inners->buffer) + 1; lnI < inners->populatedLength; lnI += sizeof(SWheelPointData), wpdp++)
+				{
+					// Draw this line
+					iDrawLineArbitrary(tsWnd, bmp, (wpdp-1)->x, (wpdp-1)->y, wpdp->x, wpdp->y, rgb(0,128,255));
+				}
+
+				for (lnI = sizeof(SWheelPointData), wpdp = ((SWheelPointData*)outters->buffer) + 1; lnI < outters->populatedLength; lnI += sizeof(SWheelPointData), wpdp++)
+				{
+					// Draw this line
+					iDrawLineArbitrary(tsWnd, bmp, (wpdp-1)->x, (wpdp-1)->y, wpdp->x, wpdp->y, rgb(255,128,0));
+				}
+
+
+			//////////
+			// Clean house
+			//////
+				iBuilder_freeAndRelease(&inners);
+				iBuilder_freeAndRelease(&outters);
 		}
 	}
 

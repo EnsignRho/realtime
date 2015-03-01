@@ -67,6 +67,12 @@ struct SMouse
 	bool			rightButton;							// Right button is down?
 };
 
+struct SWheelPointData
+{
+	float x;
+	float y;
+};
+
 // Data unique to the progress bar control
 struct SPBar
 {
