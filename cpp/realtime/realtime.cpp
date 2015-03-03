@@ -3618,7 +3618,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				colorDark			= RGB(128,128,128);
 				colorBorderInner	= iCombineColors(tsWnd->phwheel.nColorInner, rgb(0,0,0), 0.75f);
 				colorBorderOutter	= iCombineColors(tsWnd->phwheel.nColorInner, rgb(0,0,0), 0.75f);
-				colorPrime			= RGB(255,255,0);
+				colorPrime			= RGB(255,255,128);	// pastel yellow
 				colorPrimeBorder	= iCombineColors(colorPrime, colorBorderOutter, 0.50f);
 				colorNonPrime		= RGB(0,164,255);
 				colorNonPrimeBorder	= iCombineColors(colorPrime, colorBorderOutter, 0.50f);
@@ -3975,6 +3975,101 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 	void iPHDnaOverlay(SWindow* tsWnd, SBitmap* bmp)
 	{
+		u32					lnI, lnHint;
+		int					colorPrime, colorPrime2, colorPrime4, colorPrime5, colorPrime6, colorNonPrime;
+		float				lfX, lfY, lfXBase, lfYBase, lfWidth, lfXStep, lfYExtent;
+
+
+		// Make sure we have been populated
+		if (tsWnd->phwheel.nPeriod != 0)
+		{
+			//////////
+			// Fill the middle with the 210 cycle repeated until we reach our extents
+			//////
+				colorPrime		= RGB(255,255,128);	// pastel yellow
+				colorPrime2		= RGB(255,128,0);	// orange
+				colorPrime4		= RGB(0,128,0);		// dark green
+				colorPrime5		= RGB(255,0,0);		// red
+				colorPrime6		= RGB(0,128,128);	// dark cyan
+				colorNonPrime	= RGB(0,164,255);
+
+				// Adjust some to pastel colors so others punch out
+				colorPrime		= iCombineColors(colorPrime,	rgb(255,255,255), 0.15f);
+				colorPrime2		= iCombineColors(colorPrime2,	rgb(255,255,255), 0.15f);
+// 				colorPrime4		= iCombineColors(colorPrime4,	rgb(255,255,255), 0.15f);
+// 				colorPrime5		= iCombineColors(colorPrime5,	rgb(255,255,255), 0.15f);
+// 				colorPrime6		= iCombineColors(colorPrime6,	rgb(255,255,255), 0.15f);
+
+				lfXBase			= 0.0f;
+				lfWidth			= (float)bmp->bmi.bmiHeader.biWidth;
+				lfXStep			= lfWidth / (sizeof(gaPrimeSeed) / sizeof(gaPrimeSeed[0]));
+				lfYBase			= 0.0f;
+				lfYExtent		= (float)bmp->bmi.bmiHeader.biHeight;
+
+				// Re-seed
+				for (lnI = 0; lnI < sizeof(_gaPrimeSeed) / sizeof(_gaPrimeSeed[0]); lnI++)
+					gaPrimeSeed[lnI] = _gaPrimeSeed[lnI];
+
+				// Repeat until we're exhausted
+				for (lnI = 0, lnHint = 0, lfX = lfXBase, lfY = lfYBase; lnI < gaPrimesSize && lfY < lfYExtent; )
+				{
+					//////////
+					// Render this one as its type of primality
+					//////
+						lnHint = 0;
+						if (iIsPrime(gaPrimeSeed[lnI], &lnHint))
+						{
+							switch (iGetPrimeNCount(lnHint - 1))
+							{
+								case 6:	// Sixer
+									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime6);
+									break;
+
+								case 5: // Quint
+									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime5);
+									break;
+
+								case 4:	// Quad
+									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime4);
+									break;
+
+								case 2:	// Twin
+									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime2);
+									break;
+
+								default:	// Single
+									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime);
+									break;
+							}
+
+						} else {
+							// Not prime
+							// For now we just leave the slot un-rendered
+						}
+
+
+					//////////
+					// Are we at our stop point?
+					//////
+						if (lnI == sizeof(gaPrimeSeed) / sizeof(gaPrimeSeed[0]))
+						{
+							// Move down to next row
+							for (lnI = 0; lnI < sizeof(gaPrimeSeed) / sizeof(gaPrimeSeed[0]); lnI++)
+								gaPrimeSeed[lnI] += tsWnd->phwheel.nPeriod;
+
+							lnI	= 0;
+							lfX = lfXBase;
+							lfY += 1.0f;
+
+						} else {
+							// Move horizontally for next number
+							lnI++;
+							lfX += lfXStep;
+						}
+
+				}
+
+		}
 	}
 
 
@@ -5503,7 +5598,6 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		//////
 			return(_color);
 	}
-;
 
 
 
@@ -5513,20 +5607,105 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 // Brute force primality test
 //
 //////
-	bool iIsPrime(int lnValue)
+	bool iIsPrime(int tnCandidate, u32* tnHint)
 	{
-		int lnCandidate;
+		int lnI;
 
 
-		for (lnCandidate = 2; lnCandidate < lnValue; lnCandidate++)
+		// We are utilizing our list of known primes (which can be a runtime-generated list, but for now is a hard-coded list of primes up to 100,000)
+		for (lnI = ((tnHint) ? *tnHint : 0); lnI < gaPrimesSize && tnCandidate >= gaPrimes[lnI]; lnI++)
 		{
-			// If it's evenly divisible, it's not prime
-			if (lnValue % lnCandidate == 0)
-				return(false);
+			// If it's on our list, it's prime
+			if (gaPrimes[lnI] == tnCandidate)
+			{
+				// Update our hint for next time
+				if (tnHint)
+					*tnHint = lnI + 1;
+
+				// Indicate success
+				return(true);
+			}
 		}
 
-		// If we get here, prime
-		return(true);
+		// If we get here, not prime
+		return(false);
+	}
+
+	int iGetPrimeIndex(int tnValue)
+	{
+		int lnI;
+
+
+		for (lnI = 0; lnI < gaPrimesSize; lnI++)
+		{
+			if (gaPrimes[lnI] == tnValue)
+				break;
+		}
+		return(lnI);
+	}
+
+	int iGetPrimeNCount(int tnIndex)
+	{
+		int		lnI, lnDelta, lnTick, lnTock, lnCount;
+		bool	llTickTock;
+
+
+		// Make sure our environment is sane
+		if (tnIndex <= gaPrimesSize)
+		{
+			// Repeat backwards from this location while the delta is 2 or 4
+			if (tnIndex == 0)
+			{
+				// Compute our initial delta
+				lnI		= 1;
+				lnDelta = gaPrimes[1] - gaPrimes[0];
+				// Note:  Right now the condition of gaPrimes[] is known, but the array may change in the future, so we always do the normal test
+
+			} else {
+				for (lnI = tnIndex, lnCount = 1; lnI >= 1; lnI--)
+				{
+					// Checking backward to first 2 or 4 diff extents
+					lnDelta = gaPrimes[lnI] - gaPrimes[lnI-1];
+					if (lnDelta != 2 && lnDelta != 4)
+					{
+						// The base delta
+						lnDelta = gaPrimes[lnI+1] - gaPrimes[lnI];
+						++lnI;
+						break;
+					}
+				}
+			}
+
+			// Count forward from this location on the cadence of 2,4,2,4,2,4 or 4,2,4,2,4,2
+			if (lnDelta == 2)
+			{
+				// Test on 2,4... cadence
+				lnTick = 2;
+				lnTock = 4;
+
+			} else if (lnDelta == 4) {
+				// Test on 4,2... cadence
+				lnTick = 4;
+				lnTock = 2;
+
+			} else {
+				// Not in range
+				return(1);
+			}
+
+			// Check the sixer
+			for (lnI = ((lnI == 0) ? 1 : lnI), lnCount = 1, llTickTock = true; lnI < gaPrimesSize; lnI++, lnCount++, llTickTock = !llTickTock)
+			{
+				// Check the delta, it must be in our cadence
+				if (gaPrimes[lnI] - gaPrimes[lnI - 1] != ((llTickTock) ? lnTick : lnTock))
+					break;
+			}
+			// If we get here, it's a sixer
+			return(lnCount);
+		}
+
+		// If we get here, out of range
+		return(0);
 	}
 
 

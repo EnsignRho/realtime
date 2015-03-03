@@ -184,7 +184,9 @@
 	void					iiFillRectArbitrary							(SWindow* tsWnd, SBitmap* bmp, float tfXUl, float tfYUl, float tfXUr, float tfYUr, float tfXLr, float tfYLr, float tfXLl, float tfYLl, int tnRgb, bool tlFrame, int tnFrameRgb);
 	void					iOverlayBitmapViaColorizingAlphaBlend		(SBitmap* bmpDst, SBitmap* bmpSrc, int tnBackRgb, int tnForeRgb, float tfAlpha);
 	int						iCombineColors								(int tnColor1, int tnColor2, float tfColor1Weight);
-	bool					iIsPrime									(int lnValue);
+	bool					iIsPrime									(int tnCandidate, u32* tnHint = NULL);
+	int						iGetPrimeIndex								(int tnValue);
+	int						iGetPrimeNCount								(int tnIndex);
 	void					iPointOnLine								(float tfX1, float tfY1, float tfX2, float tfY2, float tfDelta, float* tfX, float* tfY);
 	void					iBmp_saveToDisk								(SBitmap* bmp, s8* tcPathname);
 
