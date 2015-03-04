@@ -1574,7 +1574,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 // Setup the parameters for a DNA strip
 //
 //////
-	REALTIME_API void realtime_phdna_setup(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey)
+	REALTIME_API void realtime_phdna_setup(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey, int tlHighlightPrime0, int tlHighlightPrime1, int tlHighlightPrime2, int tlHighlightPrime3, int tlHighlightPrime4, int tlHighlightPrime5, int tlHighlightPrime6)
 	{
 		SWindow*	wnd;
 
@@ -1588,11 +1588,20 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		if (wnd)
 		{
 			// Set or update the data
-			wnd->phwheel.nInner		= tnInner;
-			wnd->phwheel.nOutter	= tnOutter;
-			wnd->phwheel.nGap		= tnGap;
-			wnd->phwheel.nPeriod	= tnPeriod;
-			wnd->phwheel.nKey		= tnKey;
+			wnd->phdna.nInner				= tnInner;
+			wnd->phdna.nOutter				= tnOutter;
+			wnd->phdna.nGap					= tnGap;
+			wnd->phdna.nPeriod				= tnPeriod;
+			wnd->phdna.nKey					= tnKey;
+
+			// Prime values
+			wnd->phdna.lHighlightPrime0		= (tlHighlightPrime0 != 0);
+			wnd->phdna.lHighlightPrime1		= (tlHighlightPrime1 != 0);
+			wnd->phdna.lHighlightPrime2		= (tlHighlightPrime2 != 0);
+			wnd->phdna.lHighlightPrime3		= (tlHighlightPrime3 != 0);
+			wnd->phdna.lHighlightPrime4		= (tlHighlightPrime4 != 0);
+			wnd->phdna.lHighlightPrime5		= (tlHighlightPrime5 != 0);
+			wnd->phdna.lHighlightPrime6		= (tlHighlightPrime6 != 0);
 		}
 	}
 
@@ -3975,36 +3984,62 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 	void iPHDnaOverlay(SWindow* tsWnd, SBitmap* bmp)
 	{
-		u32					lnI, lnHint;
-		int					colorPrime, colorPrime2, colorPrime4, colorPrime5, colorPrime6, colorNonPrime;
+		u32					lnI, lnJ, lnJMax, lnHint;
+		int					colorPrime1, colorPrime2, colorPrime3, colorPrime4, colorPrime5, colorPrime6, colorNonPrime;
 		float				lfX, lfY, lfXBase, lfYBase, lfWidth, lfXStep, lfYExtent;
 
 
 		// Make sure we have been populated
-		if (tsWnd->phwheel.nPeriod != 0)
+		if (tsWnd->phdna.nPeriod != 0)
 		{
 			//////////
 			// Fill the middle with the 210 cycle repeated until we reach our extents
 			//////
-				colorPrime		= RGB(255,255,128);	// pastel yellow
-				colorPrime2		= RGB(255,128,0);	// orange
+				colorPrime1		= RGB(128,128,0);	// dark yellow
+				colorPrime2		= RGB(192,96,0);	// dark orange
+				colorPrime3		= RGB(128,0,128);	// dark fuscia
 				colorPrime4		= RGB(0,128,0);		// dark green
-				colorPrime5		= RGB(255,0,0);		// red
+				colorPrime5		= RGB(255,0,0);		// dark red
 				colorPrime6		= RGB(0,128,128);	// dark cyan
-				colorNonPrime	= RGB(0,164,255);
+				colorNonPrime	= RGB(164,212,255);	// light blue
 
-				// Adjust some to pastel colors so others punch out
-				colorPrime		= iCombineColors(colorPrime,	rgb(255,255,255), 0.15f);
-				colorPrime2		= iCombineColors(colorPrime2,	rgb(255,255,255), 0.15f);
-// 				colorPrime4		= iCombineColors(colorPrime4,	rgb(255,255,255), 0.15f);
-// 				colorPrime5		= iCombineColors(colorPrime5,	rgb(255,255,255), 0.15f);
-// 				colorPrime6		= iCombineColors(colorPrime6,	rgb(255,255,255), 0.15f);
+				// Adjust some to pastel colors to non-highlighted channels (so the highlighted channels punch out)
+				if (!tsWnd->phdna.lHighlightPrime0)		colorNonPrime	= iCombineColors(colorNonPrime,	rgb(255,255,255), 0.15f);
+				if (!tsWnd->phdna.lHighlightPrime1)		colorPrime1		= iCombineColors(colorPrime1,	rgb(255,255,255), 0.15f);
+				if (!tsWnd->phdna.lHighlightPrime2)		colorPrime2		= iCombineColors(colorPrime2,	rgb(255,255,255), 0.15f);
+				if (!tsWnd->phdna.lHighlightPrime3)		colorPrime3		= iCombineColors(colorPrime3,	rgb(255,255,255), 0.15f);
+				if (!tsWnd->phdna.lHighlightPrime4)		colorPrime4		= iCombineColors(colorPrime4,	rgb(255,255,255), 0.15f);
+				if (!tsWnd->phdna.lHighlightPrime5)		colorPrime5		= iCombineColors(colorPrime5,	rgb(255,255,255), 0.15f);
+				if (!tsWnd->phdna.lHighlightPrime6)		colorPrime6		= iCombineColors(colorPrime6,	rgb(255,255,255), 0.15f);
 
 				lfXBase			= 0.0f;
 				lfWidth			= (float)bmp->bmi.bmiHeader.biWidth;
-				lfXStep			= lfWidth / (sizeof(gaPrimeSeed) / sizeof(gaPrimeSeed[0]));
+				lfXStep			= 2.0f;
 				lfYBase			= 0.0f;
 				lfYExtent		= (float)bmp->bmi.bmiHeader.biHeight;
+
+				// Establish seed the first time through
+				if (!ll_gaPrimeSeeded)
+				{
+					// Iterate through each one determining if it is a lame channel, and if so remove it
+					for (lnI = 0; lnI < sizeof(_gaPrimeSeed) / sizeof(_gaPrimeSeed[0]); lnI++)
+					{
+						// Try the first 10 columns
+						for (lnJ = 210, lnJMax = 210*10; lnJ < lnJMax; lnJ += 210)
+						{
+							// If it's prime, this is a valid channel
+							if (iIsPrime(_gaPrimeSeed[lnI] + lnJ))
+								break;
+						}
+
+						// If the channel is lame, mark it as such
+						if (lnJ >= lnJMax)
+							_gaPrimeSeed[lnI] = -1;
+					}
+
+					// Indicate this step is completed
+					ll_gaPrimeSeeded = true;
+				}
 
 				// Re-seed
 				for (lnI = 0; lnI < sizeof(_gaPrimeSeed) / sizeof(_gaPrimeSeed[0]); lnI++)
@@ -4017,45 +4052,80 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 					// Render this one as its type of primality
 					//////
 						lnHint = 0;
-						if (iIsPrime(gaPrimeSeed[lnI], &lnHint))
+						// If it's not a lame channel, process it
+						if (gaPrimeSeed[lnI] != -1)
 						{
-							switch (iGetPrimeNCount(lnHint - 1))
+							if (iIsPrime(gaPrimeSeed[lnI], &lnHint))
 							{
-								case 6:	// Sixer
-									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime6);
-									break;
+								if (true/*drawAsPrimes*/)
+								{
+									switch (iGetPrimeNCount(lnHint - 1))
+									{
+										case 6:	// Sixer
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime6);
+											break;
 
-								case 5: // Quint
-									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime5);
-									break;
+										case 5: // Quint
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime5);
+											break;
 
-								case 4:	// Quad
-									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime4);
-									break;
+										case 4:	// Quad
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime4);
+											break;
 
-								case 2:	// Twin
-									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime2);
-									break;
+										case 3:	// Triplet
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime3);
+											break;
 
-								default:	// Single
-									iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + (lfXStep * 0.8f), lfY, colorPrime);
-									break;
+										case 2:	// Twin
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime2);
+											break;
+
+										default:	// Single
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime1);
+											break;
+									}
+
+								} else {
+									// Digital roots
+									switch (iGetDigitalRoot(gaPrimes[lnHint] - gaPrimes[lnHint - 1]))
+									{
+										case 9:	// Digital root = 9
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime6);
+											break;
+
+										case 6: // Digital root = 6
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime5);
+											break;
+
+										case 3:	// Digital root = 3
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime4);
+											break;
+
+										case 2:	// Digital root = 2
+											iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorPrime3);
+											break;
+									}
+								}
+
+							} else {
+								// Not prime
+								iDrawLineArbitrary(tsWnd, bmp, lfX, lfY, lfX + lfXStep, lfY, colorNonPrime);
 							}
-
-						} else {
-							// Not prime
-							// For now we just leave the slot un-rendered
 						}
 
 
 					//////////
 					// Are we at our stop point?
 					//////
-						if (lnI == sizeof(gaPrimeSeed) / sizeof(gaPrimeSeed[0]))
+						if (lnI + 1 == sizeof(gaPrimeSeed) / sizeof(gaPrimeSeed[0]) || _gaPrimeSeed[lnI] > tsWnd->phdna.nPeriod)
 						{
 							// Move down to next row
 							for (lnI = 0; lnI < sizeof(gaPrimeSeed) / sizeof(gaPrimeSeed[0]); lnI++)
-								gaPrimeSeed[lnI] += tsWnd->phwheel.nPeriod;
+							{
+								if (gaPrimeSeed[lnI] != -1)
+									gaPrimeSeed[lnI] += tsWnd->phdna.nPeriod;
+							}
 
 							lnI	= 0;
 							lfX = lfXBase;
@@ -4063,8 +4133,10 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 						} else {
 							// Move horizontally for next number
+							if (gaPrimeSeed[lnI] != -1)
+								lfX += lfXStep;
+
 							lnI++;
-							lfX += lfXStep;
 						}
 
 				}
@@ -5706,6 +5778,50 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 		// If we get here, out of range
 		return(0);
+	}
+
+
+
+
+//////////
+//
+// Grabs the digital root for the indicated value
+//
+//////
+	int iGetDigitalRoot(int tnValue)
+	{
+		int		lnI;
+		char	buffer[16];
+
+
+		//////////
+		// Compute in the indicated base so long as the number length is > 1
+		//////
+			while (tnValue >= 10)
+			{
+
+				//////////
+				// Compute the digits in the current base
+				//////
+					memset(buffer, 0, sizeof(buffer));
+					_ultoa(tnValue, buffer, 10);
+
+
+				//////////
+				// Add up the digits
+				//////
+					for (lnI = 0, tnValue = 0; buffer[lnI] != 0; lnI++)
+					{
+						if (buffer[lnI] >= '0' && buffer[lnI] <= '9')		tnValue += (int)(buffer[lnI] - '0');
+						else												tnValue += (int)(buffer[lnI] - 'a' + 10);
+					}
+			}
+
+
+		//////////
+		// Indicate the digital root
+		//////
+			return(tnValue);
 	}
 
 

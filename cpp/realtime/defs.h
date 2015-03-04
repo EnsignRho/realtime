@@ -98,7 +98,7 @@
 	REALTIME_API void		realtime_phwheel_redraw						(int tnHandle);
 
 	// For prime harmonics DNA functions
-	REALTIME_API void		realtime_phdna_setup						(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey);
+	REALTIME_API void		realtime_phdna_setup						(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey, int tlHighlightPrime0, int tlHighlightPrime1, int tlHighlightPrime2, int tlHighlightPrime3, int tlHighlightPrime4, int tlHighlightPrime5, int tlHighlightPrime6);
 	REALTIME_API void		realtime_phdna_redraw						(int tnHandle);
 
 
@@ -187,6 +187,7 @@
 	bool					iIsPrime									(int tnCandidate, u32* tnHint = NULL);
 	int						iGetPrimeIndex								(int tnValue);
 	int						iGetPrimeNCount								(int tnIndex);
+	int						iGetDigitalRoot								(int tnValue);
 	void					iPointOnLine								(float tfX1, float tfY1, float tfX2, float tfY2, float tfDelta, float* tfX, float* tfY);
 	void					iBmp_saveToDisk								(SBitmap* bmp, s8* tcPathname);
 

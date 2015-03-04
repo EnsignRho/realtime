@@ -136,6 +136,15 @@ struct SPHDna
 	int			nGap;
 	int			nPeriod;
 	int			nKey;
+
+	// If certain lines are to be highlighted
+	bool		lHighlightPrime0;		// Non-primes
+	bool		lHighlightPrime1;
+	bool		lHighlightPrime2;
+	bool		lHighlightPrime3;
+	bool		lHighlightPrime4;
+	bool		lHighlightPrime5;
+	bool		lHighlightPrime6;
 };
 
 // Data unique to the graph control
