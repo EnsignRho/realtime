@@ -147,6 +147,12 @@ struct SPHDna
 	bool		lHighlightPrime6;
 };
 
+struct SPHGeo
+{
+	int			nStartingNumber;
+	int			nEndingNumber;
+};
+
 // Data unique to the graph control
 struct SGraph
 {
@@ -365,5 +371,6 @@ struct SWindow
 		SPBar		pbar;
 		SPHWheel	phwheel;
 		SPHDna		phdna;
+		SPHGeo		phgeo;
 	};
 };

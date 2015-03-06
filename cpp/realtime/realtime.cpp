@@ -1633,6 +1633,56 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 //////////
 //
+// Setup a geometry display.
+//
+//////
+	REALTIME_API void realtime_phgeo_setup(int tnHandle, int tnStartingNumber, int tnEndingNumber)
+	{
+		SWindow*	wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+		{
+			// Set or update the data
+			wnd->phgeo.nStartingNumber	= tnStartingNumber;
+			wnd->phgeo.nEndingNumber	= tnEndingNumber;
+		}
+	}
+
+
+
+
+//////////
+//
+// Issue a Geometry redraw
+//
+//////
+	REALTIME_API void realtime_phgeo_redraw(int tnHandle)
+	{
+		SWindow* wnd;
+
+
+		// Are we in test mode?
+		if (glTestMode)
+			return;
+
+		// Grab our window
+		wnd = iLocateWindow(tnHandle);
+		if (wnd)
+			iRender(wnd);			// Signal a refresh
+	}
+
+
+
+
+//////////
+//
 // Progress bar drawing algorithms
 //
 //////
@@ -3984,9 +4034,9 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 
 	void iPHDnaOverlay(SWindow* tsWnd, SBitmap* bmp)
 	{
-		u32					lnI, lnJ, lnJMax, lnHint;
-		int					colorPrime1, colorPrime2, colorPrime3, colorPrime4, colorPrime5, colorPrime6, colorNonPrime;
-		float				lfX, lfY, lfXBase, lfYBase, lfWidth, lfXStep, lfYExtent;
+		u32		lnI, lnJ, lnJMax, lnHint;
+		int		colorPrime1, colorPrime2, colorPrime3, colorPrime4, colorPrime5, colorPrime6, colorNonPrime;
+		float	lfX, lfY, lfXBase, lfYBase, lfWidth, lfXStep, lfYExtent;
 
 
 		// Make sure we have been populated
@@ -4139,6 +4189,47 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 							lnI++;
 						}
 
+				}
+
+		}
+	}
+
+	void iPHGeoOverlay(SWindow* tsWnd, SBitmap* bmp)
+	{
+		s32		lnPrime, lnNextPrime, lnDiff;
+		u32		lnHint;
+		float	lfX, lfY;
+
+
+		// Make sure we have been populated
+		if (tsWnd->phgeo.nEndingNumber != 0 && tsWnd->phgeo.nEndingNumber > tsWnd->phgeo.nStartingNumber)
+		{
+			//////////
+			// Grab the starting prime number
+			//////
+				lnHint	= 0;
+				lnPrime = iGetNextPrime(tsWnd->phgeo.nStartingNumber, &lnHint);
+
+
+			//////////
+			// Continue forward
+			//////
+				lfX = 0.0;
+				lfY = (float)(bmp->bmi.bmiHeader.biHeight / 2);
+				while (lnPrime <= tsWnd->phgeo.nEndingNumber && lfX < (float)bmp->bmi.bmiHeader.biWidth)
+				{
+					// Grab the next one
+					lnNextPrime = iGetNextPrime(lnPrime, &lnHint);
+
+					// Compute the center of each 1x1 square in the geometry
+					lnDiff = ((lnNextPrime - lnPrime) + 1) / 2;
+
+					// Draw the line up from here
+					iDrawLineArbitrary(tsWnd, bmp, lfX, lfY + (float)(lnDiff - 1) * 5, lfX, lfY - (float)lnDiff * 5, 0);
+
+					// Prepare for next try
+					lfX		+= 1.0f;
+					lnPrime = lnNextPrime;
 				}
 
 		}
@@ -5703,6 +5794,24 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		return(false);
 	}
 
+	int iGetNextPrime(int tnValue, u32* tnHint)
+	{
+		int lnI;
+
+
+		// Iterate through each prime until we find the larger one
+		for (lnI = ((tnHint) ? *tnHint : 0); lnI < gaPrimesSize; lnI++)
+		{
+			// Is this prime number bigger than the value?
+			if (gaPrimes[lnI] > tnValue)
+				return(gaPrimes[lnI]);
+		}
+
+		// If we get here, not found
+		if (tnHint)		return(iGetNextPrime(tnValue, NULL));	// Begin at 0 and try again
+		else			return(-1);
+	}
+
 	int iGetPrimeIndex(int tnValue)
 	{
 		int lnI;
@@ -5919,6 +6028,7 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 				else if (tsWnd->type == _TYPE_PBAR)			tsWnd->threadHandle = CreateThread(NULL, 0, buildPbarWorkerThreadProc,		(void*)tsWnd, 0, &tsWnd->threadId);
 				else if (tsWnd->type == _TYPE_PHWHEEL)		tsWnd->threadHandle = CreateThread(NULL, 0, buildPHWheelWorkerThreadProc,	(void*)tsWnd, 0, &tsWnd->threadId);
 				else if (tsWnd->type == _TYPE_PHDNA)		tsWnd->threadHandle = CreateThread(NULL, 0, buildPHDnaWorkerThreadProc,		(void*)tsWnd, 0, &tsWnd->threadId);
+				else if (tsWnd->type == _TYPE_PHGEO)		tsWnd->threadHandle = CreateThread(NULL, 0, buildPHGeoWorkerThreadProc,		(void*)tsWnd, 0, &tsWnd->threadId);
 				else										_asm nop;
 				// Note:  Called thread will reset busy upon termination
 
@@ -6128,8 +6238,38 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 			// Fill the background color
 			iGradient4FillOrBitmapOverlay(wnd, &wnd->bmpMain, &wnd->bmpBackground);
 
-			// Overlay the prime harmonics wheel
+			// Overlay the prime harmonics dna
 			iPHDnaOverlay(wnd, &wnd->bmpMain);
+
+			// All done!
+			// Refresh the graph for the redraw
+			InvalidateRect(wnd->hwnd, NULL, false);
+			iPaintWindow(wnd);
+		}
+
+		// Thread terminates
+		CloseHandle(wnd->threadHandle);
+		wnd->threadBusy = false;
+		ExitThread(0);
+	}
+
+	DWORD WINAPI buildPHGeoWorkerThreadProc(LPVOID lpParameter)
+	{
+		SWindow* wnd;
+
+
+		// Restore the parameter
+		wnd = (SWindow*)lpParameter;
+		if (wnd)
+		{
+			// Reset our call count
+			wnd->threadCalls = 0;
+
+			// Fill the background color
+			iGradient4FillOrBitmapOverlay(wnd, &wnd->bmpMain, &wnd->bmpBackground);
+
+			// Overlay the prime harmonics geometry
+			iPHGeoOverlay(wnd, &wnd->bmpMain);
 
 			// All done!
 			// Refresh the graph for the redraw

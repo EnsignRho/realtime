@@ -101,6 +101,10 @@
 	REALTIME_API void		realtime_phdna_setup						(int tnHandle, int tnInner, int tnOutter, int tnGap, int tnPeriod, int tnKey, int tlHighlightPrime0, int tlHighlightPrime1, int tlHighlightPrime2, int tlHighlightPrime3, int tlHighlightPrime4, int tlHighlightPrime5, int tlHighlightPrime6);
 	REALTIME_API void		realtime_phdna_redraw						(int tnHandle);
 
+	// For prime harmonics Geometry functions
+	REALTIME_API void		realtime_phgeo_setup						(int tnHandle, int tnStartingNumber, int tnEndingNumber);
+	REALTIME_API void		realtime_phgeo_redraw						(int tnHandle);
+
 
 //////////
 // Local/internal function prototype definitions
@@ -146,6 +150,7 @@
 
 	void					iPHWheelOverlay								(SWindow* tsWnd, SBitmap* bmp);
 	void					iPHDnaOverlay								(SWindow* tsWnd, SBitmap* bmp);
+	void					iPHGeoOverlay								(SWindow* tsWnd, SBitmap* bmp);
 
 	int						iGetNextUniqueId							(void);
 	SWindow*				iCreateNewSWindow							(void);
@@ -185,6 +190,7 @@
 	void					iOverlayBitmapViaColorizingAlphaBlend		(SBitmap* bmpDst, SBitmap* bmpSrc, int tnBackRgb, int tnForeRgb, float tfAlpha);
 	int						iCombineColors								(int tnColor1, int tnColor2, float tfColor1Weight);
 	bool					iIsPrime									(int tnCandidate, u32* tnHint = NULL);
+	int						iGetNextPrime								(int tnValue, u32* tnHint);
 	int						iGetPrimeIndex								(int tnValue);
 	int						iGetPrimeNCount								(int tnIndex);
 	int						iGetDigitalRoot								(int tnValue);
@@ -198,6 +204,7 @@
 	DWORD WINAPI			buildPbarWorkerThreadProc					(LPVOID lpParameter);
 	DWORD WINAPI			buildPHWheelWorkerThreadProc				(LPVOID lpParameter);
 	DWORD WINAPI			buildPHDnaWorkerThreadProc					(LPVOID lpParameter);
+	DWORD WINAPI			buildPHGeoWorkerThreadProc					(LPVOID lpParameter);
 	LRESULT CALLBACK		realtimeWndProc								(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	VOID CALLBACK			iiMoverTimerProc							(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
 	void					iPaintWindow								(SWindow* tsWnd);

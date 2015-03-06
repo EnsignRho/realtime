@@ -41,5 +41,9 @@ EXPORTS
 
 	realtime_phwheel_setup
 	realtime_phwheel_redraw
+
 	realtime_phdna_setup
 	realtime_phdna_redraw
+
+	realtime_phgeo_setup
+	realtime_phgeo_redraw
