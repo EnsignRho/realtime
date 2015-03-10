@@ -4194,45 +4194,170 @@ REALTIME_API int realtime_mover_delete_object(int tnHandle, int tnObjectId)
 		}
 	}
 
+	struct SPrimePoint
+	{
+		float	diff;
+		float	position;
+	};
+
 	void iPHGeoOverlay(SWindow* tsWnd, SBitmap* bmp)
 	{
-		s32		lnPrime, lnNextPrime, lnDiff;
-		u32		lnHint;
-		float	lfX, lfY;
+		s32				lnPrime1, lnPrime2, lnNextPrime1, lnNextPrime2, lnDiff1, lnDiff2, lnBase1, lnBase2, lnKey1, lnPeriod, lnMaxDiff;
+		u32				lnI, lnJ, lnHint1, lnHint2;
+		f32				lfData;
+		float			lfX, lfY;
+		SBuilder*		points;
+		SBuilder*		sound;
+		SPrimePoint		primePoint;
+		SPrimePoint*	pp;
 
 
 		// Make sure we have been populated
 		if (tsWnd->phgeo.nEndingNumber != 0 && tsWnd->phgeo.nEndingNumber > tsWnd->phgeo.nStartingNumber)
 		{
-			//////////
-			// Grab the starting prime number
-			//////
-				lnHint	= 0;
-				lnPrime = iGetNextPrime(tsWnd->phgeo.nStartingNumber, &lnHint);
+			// Iterate through 8 cycles
+			lnBase1		= 5;
+			lnBase2		= 7;
+			lnKey1		= 42;
+			iBuilder_createAndInitialize(&points, -1);
+			for (lnI = 0, lnMaxDiff = 0; lnI < 8; lnI++, lnBase1 += 6, lnBase2 += 6, lnKey1 += 36)
+			{
+				//////////
+				// Initialize
+				//////
+					lnPeriod = lnBase1 * lnBase2;
+
+
+				//////////
+				// Grab the starting prime numbers
+				//////
+					lnHint1	= lnBase1;
+					lnHint2	= lnBase2;
+					lnPrime1 = iGetNextPrime(tsWnd->phgeo.nStartingNumber, &lnHint1);
+					lnPrime2 = iGetNextPrime(tsWnd->phgeo.nStartingNumber, &lnHint2);
+
+
+				//////////
+				// Generate the prime portions
+				//////
+// ?? What to do here ??  Pull primes??  Or rotate around and set the up/down based on primes?
+					for (lnJ = 0; lnJ < lnPeriod; lnJ++)
+					{
+						//////////
+						// Grab the next one
+						//////
+							lnNextPrime1 = iGetNextPrime(lnPrime1, &lnHint1);
+							lnNextPrime2 = iGetNextPrime(lnPrime2, &lnHint2);
+
+
+						//////////
+						// Compute the center of each 1x1 square in the geometry
+						//////
+							lnDiff1		= ((lnNextPrime1 - lnPrime1) + 1) / 2;
+							lnDiff2		= ((lnNextPrime2 - lnPrime2) + 1) / 2;
+							lnMaxDiff	= max(lnMaxDiff, lnDiff1);
+							lnMaxDiff	= max(lnMaxDiff, lnDiff2);
+
+
+						//////////
+						// Store prime1
+						//////
+							primePoint.diff			= (f32)lnDiff1;
+							primePoint.position		= (f32)(lnPeriod - lnPrime1) / (f32)lnPeriod;
+							iBuilder_appendData(points, (u8*)&primePoint, sizeof(primePoint));
+
+
+						//////////
+						// Store prime2
+						//////
+							primePoint.diff			= (f32)lnDiff2;
+							primePoint.position		= (f32)(lnPeriod - lnPrime2) / (f32)lnPeriod;
+							iBuilder_appendData(points, (u8*)&primePoint, sizeof(primePoint));
+
+
+						//////////
+						// Prepare for next iteration
+						//////
+							lnPrime1 = lnNextPrime1;
+							lnPrime2 = lnNextPrime2;
+
+					}
+
+			}
 
 
 			//////////
-			// Continue forward
+			// Sort each block
 			//////
-				lfX = 0.0;
-				lfY = (float)(bmp->bmi.bmiHeader.biHeight / 2);
-				while (lnPrime <= tsWnd->phgeo.nEndingNumber && lfX < (float)bmp->bmi.bmiHeader.biWidth)
+				qsort(points->buffer, points->populatedLength / sizeof(SPrimePoint), sizeof(SPrimePoint), &iiSort_dataPoints);
+
+
+			//////////
+			// Convert to sound data
+			//////
+				iBuilder_createAndInitialize(&sound, (1 + (points->populatedLength / sizeof(SPrimePoint))) * 4);
+				for (lnI = 0, pp = (SPrimePoint*)points->buffer; lnI < points->populatedLength; lnI += sizeof(SPrimePoint), pp++)
 				{
-					// Grab the next one
-					lnNextPrime = iGetNextPrime(lnPrime, &lnHint);
+					// Compute it
+// ?? What to do here ??
+// A generated waveform, peak to peak, a time period peaking at the various deltas....
+					lfData = (pp->diff / (f32)lnMaxDiff) * ((lnI % 2 == 0) ? 1.0f : -1.0f);
 
-					// Compute the center of each 1x1 square in the geometry
-					lnDiff = ((lnNextPrime - lnPrime) + 1) / 2;
-
-					// Draw the line up from here
-					iDrawLineArbitrary(tsWnd, bmp, lfX, lfY + (float)(lnDiff - 1) * 5, lfX, lfY - (float)lnDiff * 5, 0);
-
-					// Prepare for next try
-					lfX		+= 1.0f;
-					lnPrime = lnNextPrime;
+					// Store it
+					iBuilder_appendData(sound, (u8*)&lfData, sizeof(lfData));
 				}
 
+
+			//////////
+			// Write out
+			//////
+				iBuilder_asciiWriteOutFile(sound, (cu8*)"c:\\libsf\\source\\vjr\\test.wav", false);
+
+
+			//////////
+			// Generate and render
+			//////
+// 				lfX = 0.0;
+// 				lfY = (float)(bmp->bmi.bmiHeader.biHeight / 2);
+// 				while (lfX < (float)bmp->bmi.bmiHeader.biWidth)
+// 				{
+// 					// Grab the next one
+// 					lnNextPrime1 = iGetNextPrime(lnPrime1, &lnHint1);
+// 
+// 					// Compute the center of each 1x1 square in the geometry
+// 					lnDiff1 = ((lnNextPrime1 - lnPrime1) + 1) / 2;
+// 
+// 					// Draw the line up from here
+// 					iDrawLineArbitrary(tsWnd, bmp, lfX, lfY + (float)(lnDiff1 - 1) * 5, lfX, lfY - (float)lnDiff1 * 5, 0);
+// 
+// 					// Prepare for next try
+// 					lfX		+= 1.0f;
+// 					lnPrime1 = lnNextPrime1;
+// 
+// 				}
+
 		}
+	}
+
+	int iiSort_dataPoints(const void* left, const void* right)
+	{
+		SPrimePoint* l;
+		SPrimePoint* r;
+
+
+		//////////
+		// Prepare for our comparison
+		//////
+			l = (SPrimePoint*)left;
+			r = (SPrimePoint*)right;
+
+
+		//////////
+		// Indicate our comparison
+		//////
+			     if (l->position < r->position)			return(-1);
+			else if (l->position > r->position)			return(1);
+			else										return(0);
 	}
 
 

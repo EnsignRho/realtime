@@ -151,6 +151,7 @@
 	void					iPHWheelOverlay								(SWindow* tsWnd, SBitmap* bmp);
 	void					iPHDnaOverlay								(SWindow* tsWnd, SBitmap* bmp);
 	void					iPHGeoOverlay								(SWindow* tsWnd, SBitmap* bmp);
+	int						iiSort_dataPoints							(const void* left, const void* right);
 
 	int						iGetNextUniqueId							(void);
 	SWindow*				iCreateNewSWindow							(void);
